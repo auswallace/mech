@@ -22,6 +22,7 @@
     glass:    { color: 0x05080b, metal: 0.6, rough: 0.05, tone: "lo", env: 1.4 },
     paint:    { color: 0x1b3657, metal: 0.35, rough: 0.38, clearcoat: 1, tone: "hi" },
     flat:     { color: 0x808080, metal: 0.05, rough: 0.55, tone: "mid" },
+    concrete: { color: 0xaeaba3, metal: 0.0, rough: 0.9, tone: "hi" },
     light:    { color: 0xffffff, metal: 0, rough: 0.3, emissive: 0xffffff, tone: "hi", lit: true },
   };
 
@@ -75,6 +76,12 @@
     return g;
   }
 
+  // Flat plate standing on z = 0 with rectangular holes: { w, d, h, holes: [{ x, y, w, d }] }.
+  function plateGeo({ w, d, h, holes = [] }) {
+    const s = new T.Shape(); s.moveTo(-w / 2, -d / 2); s.lineTo(w / 2, -d / 2); s.lineTo(w / 2, d / 2); s.lineTo(-w / 2, d / 2); s.closePath();
+    for (const o of holes) { const p = new T.Path(); p.moveTo(o.x - o.w / 2, o.y - o.d / 2); p.lineTo(o.x - o.w / 2, o.y + o.d / 2); p.lineTo(o.x + o.w / 2, o.y + o.d / 2); p.lineTo(o.x + o.w / 2, o.y - o.d / 2); p.closePath(); s.holes.push(p); }
+    return new T.ExtrudeGeometry(s, { depth: h, bevelEnabled: false });
+  }
   // Round part from a profile of [radius, height] pairs, spun about an axis.
   function latheGeo(profile, { axis = "z", n = 36 } = {}) {
     const g = new T.LatheGeometry(profile.map((p) => new T.Vector2(Math.max(p[0], 0.0001), p[1])), n);
@@ -151,10 +158,12 @@
     #dom(hint, readout) {
       const m = this.mount;
       m.classList.add("mech");
-      m.innerHTML = `<div class="mech-stage" tabindex="0" role="img"><canvas></canvas></div><div class="mech-foot"><span class="mech-hint">${hint}</span><code class="mech-readout">${readout}</code></div>`;
+      m.innerHTML = `<div class="mech-stage" tabindex="0" role="img"><canvas></canvas><div class="mech-over"><svg class="mech-leaders"></svg></div><div class="mech-panel" hidden></div></div><div class="mech-foot"><span class="mech-hint">${hint}</span><code class="mech-readout">${readout}</code></div>`;
       this.stage = m.querySelector(".mech-stage");
       this.canvas = m.querySelector("canvas");
       this.readoutEl = m.querySelector(".mech-readout");
+      this.over = m.querySelector(".mech-over"); this.leaders = m.querySelector(".mech-leaders"); this.panel = m.querySelector(".mech-panel");
+      this.infoDict = {}; this.labelList = []; this.labelSet = null; this.flowList = []; this.flowSet = null; this.selected = null; this.pickHandler = null;
     }
     #scene() {
       const r = (this.renderer = new T.WebGLRenderer({ canvas: this.canvas, antialias: true, alpha: true }));
@@ -198,7 +207,7 @@
       let drag = null;
       st.addEventListener("pointerdown", (e) => { this.touch(); drag = { x: e.clientX, y: e.clientY, az: this.azimuth, el: this.elevation }; st.setPointerCapture(e.pointerId); this.run(); });
       st.addEventListener("pointermove", (e) => { if (!drag) return; this.azimuth = drag.az + (e.clientX - drag.x) * 0.4; this.elevation = Math.max(8, Math.min(80, drag.el + (e.clientY - drag.y) * 0.3)); this.fit(); this.run(); });
-      st.addEventListener("pointerup", () => (drag = null));
+      st.addEventListener("pointerup", (e) => { const d = drag; drag = null; if (d && Math.hypot(e.clientX - d.x, e.clientY - d.y) < 5 && e.target === this.canvas) this.#pick(e); });
       st.addEventListener("keydown", (e) => {
         this.touch();
         if (e.key === "e" || e.key === "E") { this.setExplode(this.ch("explode") < 0.5 ? 1 : 0); e.preventDefault(); }
@@ -235,7 +244,7 @@
     }
     // ---- adding parts ----
     // geo: a BufferGeometry standing on z=0. opts: tone, lit, at:[x,y,z], rot:[rx,ry,rz], edges (deg threshold or false), name, explode:[dx,dy,dz], group
-    add(geo, { tone = "hi", lit = false, color, mat, side, at = [0, 0, 0], rot = [0, 0, 0], edges = 28, edgeTone, name, explode, channel = "explode", group, shadow = true, tag } = {}) {
+    add(geo, { tone = "hi", lit = false, color, mat, side, at = [0, 0, 0], rot = [0, 0, 0], edges = 28, edgeTone, name, explode, channel = "explode", group, shadow = true, tag, info } = {}) {
       const mesh = new T.Mesh(geo, this.material(tone, { lit, color, mat, side }));
       const real = this.style === "real"; if (MATS[mat] && !real) { tone = MATS[mat].tone; lit = lit || !!MATS[mat].lit; }
       mesh.castShadow = shadow; mesh.receiveShadow = true;
@@ -254,7 +263,7 @@
       }
       mesh.userData.rest = mesh.position.clone();
       mesh.userData.explode = explode ? new T.Vector3(...explode) : null;
-      mesh.userData.channel = channel; mesh.userData.tag = tag; mesh.userData.alpha = 1; mesh.userData.alphaTo = 1; mesh.userData.shadow = shadow;
+      mesh.userData.channel = channel; mesh.userData.tag = tag; if (info) mesh.userData.info = info; mesh.userData.alpha = 1; mesh.userData.alphaTo = 1; mesh.userData.shadow = shadow;
       (group || this.root).add(mesh);
       this.parts.push(mesh);
       return mesh;
@@ -265,7 +274,7 @@
       if (opts.rot) g.rotation.set(...opts.rot);
       g.userData.rest = g.position.clone();
       g.userData.explode = opts.explode ? new T.Vector3(...opts.explode) : null;
-      g.userData.channel = opts.channel || "explode";
+      g.userData.channel = opts.channel || "explode"; if (opts.info) g.userData.info = opts.info;
       (opts.group || this.root).add(g);
       this.parts.push(g);
       return g;
@@ -375,6 +384,92 @@
     }
     spin(obj, axis = "z", rpm = 60, scale = 1) { this.onFrame((dt) => { const w = (rpm * scale) / 60 * 2 * Math.PI; obj.rotation[axis] += w * dt; }); }
     shadow(k) { this.ground.material.opacity = this.T.shadow * k; }
+    // ---- teaching layer ----
+    // describe({ key: { name, role, fact } }): what each part is. Parts carry `info: key`.
+    describe(dict) { Object.assign(this.infoDict, dict); }
+    infoOf(o) { while (o) { if (o.userData && o.userData.info) return o.userData.info; o = o.parent; } return null; }
+    find(key) { let hit = null; this.root.traverse((o) => { if (!hit && o.userData.info === key) hit = o; }); return hit; }
+    #pick(e) {
+      const r = this.canvas.getBoundingClientRect(), ray = new T.Raycaster();
+      ray.setFromCamera(new T.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), this.camera);
+      const list = this.parts.filter((p) => p.isMesh && p.visible && p.userData.alpha > 0.25 && p.userData.tag !== "flow");
+      let key = null; for (const h of ray.intersectObjects(list, false)) { key = this.infoOf(h.object); if (key) break; }
+      if (this.pickHandler) this.pickHandler(key); else this.select(key);
+    }
+    select(key) {
+      this.selected = key && this.infoDict[key] ? key : null;
+      const d = this.selected && this.infoDict[this.selected];
+      if (!this.pickHandler) this.say(d ? `<b>${d.name}</b><span>${d.role || ""}</span>${d.fact ? `<em>${d.fact}</em>` : ""}` : "");
+      this.run();
+    }
+    say(html) { this.panel.innerHTML = html; this.panel.hidden = !html; }
+    // label(key, { text, on, set, pin }): a pointer to a part. `on` is an object or a world point. Show a set with labels(set).
+    label(key, { text, on, set = "all", pin = false } = {}) {
+      const el = document.createElement("div"); el.className = "mech-label" + (pin ? " pin" : ""); el.textContent = text || (this.infoDict[key] ? this.infoDict[key].name : key); el.hidden = true; this.over.appendChild(el);
+      const obj = Array.isArray(on) ? null : on || this.find(key); let local = null, probe = null;
+      if (obj) { this.root.updateMatrixWorld(true); const c = new T.Box3().setFromObject(obj).getCenter(new T.Vector3()); local = obj.worldToLocal(c); obj.traverse((m) => { if (!probe && m.isMesh) probe = m; }); }
+      this.labelList.push({ key, el, obj, local, probe, world: Array.isArray(on) ? new T.Vector3(...on) : null, set, pin });
+    }
+    labels(set) { this.labelSet = set || null; this.run(); }
+    // flow(points, opts): dots that move along a path. Show a set with flows(set).
+    flow(points, { color = 0x4aa8ff, count = 8, speed = 0.3, r = 0.8, group, set = "all" } = {}) {
+      const curve = new T.CatmullRomCurve3(points.map((p) => new T.Vector3(...p)), false, "centripetal", 0.5), dots = [];
+      for (let i = 0; i < count; i++) { const m = this.add(new T.SphereGeometry(r, 10, 8), { color, group, tag: "flow", edges: false, shadow: false }); m.material.emissive.set(color); m.visible = false; dots.push(m); }
+      const f = { curve, dots, speed, set, rate: 1 }; this.flowList.push(f); return f;
+    }
+    flows(set) { this.flowSet = set || null; this.run(); }
+    // lesson(steps): a guided walk. steps: [{ title, text, go() }]. Returns { open(i), close() }.
+    lesson(steps, { onClose } = {}) {
+      const el = document.createElement("div"); el.className = "mech-lesson"; el.hidden = true;
+      el.innerHTML = `<div class="row"><b></b><span class="n"></span><button data-d="-1" aria-label="Previous step">Back</button><button data-d="1" aria-label="Next step">Next</button><button data-d="0" aria-label="Close lesson">Close</button></div><p></p>`;
+      this.stage.after(el);
+      let i = 0;
+      const show = () => { el.querySelector("b").textContent = steps[i].title; el.querySelector(".n").textContent = "Step " + (i + 1) + " of " + steps.length; el.querySelector("p").textContent = steps[i].text; steps[i].go(); this.run(); };
+      const api = { open: (k = 0) => { i = k; el.hidden = false; this.inLesson = true; show(); }, close: () => { el.hidden = true; this.inLesson = false; onClose && onClose(); } };
+      el.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; this.touch(); const d = +b.dataset.d; if (!d) return api.close(); i = Math.max(0, Math.min(steps.length - 1, i + d)); show(); });
+      return api;
+    }
+    // quiz(questions): [{ ask, key }]. The reader clicks the part. Returns { start(), stop() }.
+    quiz(questions, { onEnd } = {}) {
+      let i = 0, score = 0, lock = false;
+      const ask = () => this.say(`<b>Question ${i + 1} of ${questions.length}</b><span>${questions[i].ask}</span>`);
+      const stop = () => { this.pickHandler = null; this.say(""); onEnd && onEnd(); };
+      return { stop, start: () => { i = 0; score = 0; lock = false; this.select(null); this.pickHandler = (key) => {
+        if (lock) return; const q = questions[i], d = this.infoDict[key];
+        if (key === q.key || (q.also || []).includes(key)) { score++; lock = true; this.selected = key; this.say(`<b>Correct</b><span>${d.name}: ${d.role || ""}</span>`); }
+        else { this.say(`<b>Question ${i + 1} of ${questions.length}</b><span>${q.ask}</span><em>${d ? "That is the " + d.name.toLowerCase() + ". Try again." : "Click a part."}</em>`); if (!d) return; lock = false; return; }
+        setTimeout(() => { lock = false; this.selected = null; i++; if (i < questions.length) ask(); else { this.pickHandler = null; this.say(`<b>Done</b><span>${score} of ${questions.length} correct.</span>`); onEnd && onEnd(); } }, 1500);
+      }; ask(); } };
+    }
+    plate(o, opts) { return this.add(plateGeo(o), opts); }
+    #teach(dt) {
+      // highlight the selected parts
+      const sel = this.selected;
+      for (const p of this.parts) { if (!p.isMesh) continue; const u = p.userData; if (u.ik === undefined) u.ik = this.infoOf(p); const on = !!sel && u.ik === sel; if (on) p.material.emissive.setHex(0x2f8cff).multiplyScalar(0.55); else if (u.hl) p.material.emissive.setHex(0); u.hl = on; }
+      // flows
+      for (const f of this.flowList) { const on = this.flowSet && (f.set === this.flowSet || f.set === "all"); f.t = ((f.t || 0) + dt * f.speed * f.rate) % 1; f.dots.forEach((d, i) => { d.visible = !!on; if (on) d.position.copy(f.curve.getPointAt((f.t + i / f.dots.length) % 1)); }); }
+      // labels: two columns with leader lines, or pinned at the part
+      const W = this.stage.clientWidth, H = this.canvas.clientHeight, v = new T.Vector3(), cols = [[], []]; let svg = "";
+      for (const L of this.labelList) {
+        const on = this.labelSet && (L.set === this.labelSet || L.set === "all") && (!L.probe || (L.probe.visible && L.probe.userData.alpha > 0.3));
+        L.el.hidden = !on; if (!on) continue;
+        if (L.obj) L.obj.localToWorld(v.copy(L.local)); else v.copy(L.world);
+        v.project(this.camera); L.x = (v.x + 1) / 2 * W; L.y = (1 - v.y) / 2 * H;
+        if (L.pin) { L.el.style.left = L.x + "px"; L.el.style.top = L.y + "px"; } else cols[L.x < W / 2 ? 0 : 1].push(L);
+      }
+      cols.forEach((col, side) => {
+        col.sort((a, b) => a.y - b.y); let y = 14;
+        for (const L of col) { L.ly = Math.max(y, Math.min(H - 14, L.y)); y = L.ly + 26; }
+        for (let k = col.length - 1, lim = H - 14; k >= 0; k--) { col[k].ly = Math.min(col[k].ly, lim); lim = col[k].ly - 26; }
+        for (const L of col) {
+          if (!L.w) L.w = L.el.offsetWidth;
+          L.el.style.top = L.ly + "px"; L.el.style.left = (side ? W - 8 - L.w : 8) + "px";
+          const ex = side ? W - 12 - L.w : 12 + L.w;
+          svg += `<path d="M${ex} ${L.ly}L${ex + (side ? -14 : 14)} ${L.ly}L${L.x.toFixed(1)} ${L.y.toFixed(1)}"/><circle cx="${L.x.toFixed(1)}" cy="${L.y.toFixed(1)}" r="2.2"/>`;
+        }
+      });
+      if (svg !== this.lastSvg) { this.leaders.innerHTML = svg; this.lastSvg = svg; }
+    }
     touch() { this.lastInput = performance.now(); }
     // tour(step): when nobody touches the figure for `idle` seconds, call step() every `every` seconds.
     tour(step, { idle = 14, every = 7 } = {}) { this.tourCfg = { step, idle: idle * 1000, every: every * 1000, next: 0 }; }
@@ -394,7 +489,7 @@
     #tick(now) {
       if (this.dead) return;
       const dt = this.last ? Math.min((now - this.last) / 1000, 1 / 30) : 1 / 60;
-      const tc = this.tourCfg; if (tc && !this.reduced && now - this.lastInput > tc.idle && now > tc.next) { tc.next = now + tc.every; tc.step(); }
+      const tc = this.tourCfg; if (tc && !this.reduced && !this.inLesson && !this.pickHandler && !this.selected && now - this.lastInput > tc.idle && now > tc.next) { tc.next = now + tc.every; tc.step(); }
       this.last = now; this.time += dt;
       if (!this.fitted) this.fit(true);
       const ease = (tau) => (this.reduced || this.snap ? 1 : 1 - Math.exp(-dt / tau));
@@ -418,6 +513,7 @@
         }
       }
       for (const f of this.updaters) f(dt, this.time);
+      this.#teach(dt);
       this.renderer.render(this.scene, this.camera);
       this.frame = this.visible ? requestAnimationFrame((t) => this.#tick(t)) : 0;
     }
@@ -451,7 +547,19 @@ body{margin:0;background:var(--m-paper);color:var(--m-ink);font:14px/1.5 -apple-
 .mech-controls button{font:inherit;color:var(--m-ink);background:transparent;border:1px solid var(--m-rule);border-radius:7px;padding:5px 10px;cursor:pointer}
 .mech-controls button[aria-pressed=true]{background:var(--m-ink);color:var(--m-card);border-color:var(--m-ink)}
 .mech-controls input[type=range]{flex:1;min-width:120px;accent-color:var(--m-ink)}
-.mech-controls .sp{flex-basis:100%;height:0}`;
+.mech-controls .sp{flex-basis:100%;height:0}
+.mech-stage{position:relative}
+.mech-over{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.mech-leaders{position:absolute;inset:0;width:100%;height:100%}
+.mech-leaders path{fill:none;stroke:var(--m-muted);stroke-width:1}.mech-leaders circle{fill:var(--m-ink)}
+.mech-label{position:absolute;transform:translateY(-50%);font-size:11.5px;line-height:1.2;white-space:nowrap;color:var(--m-ink);background:var(--m-card);border:1px solid var(--m-rule);border-radius:5px;padding:2px 6px}
+.mech-label.pin{transform:translate(-50%,-50%);background:transparent;border:0;font-weight:500;text-shadow:0 0 4px var(--m-card),0 0 4px var(--m-card)}
+.mech-panel{position:absolute;left:50%;transform:translateX(-50%);bottom:8px;width:max-content;max-width:min(340px,80%);background:var(--m-card);border:1px solid var(--m-rule);border-radius:9px;padding:9px 11px;font-size:12.5px;line-height:1.45;color:var(--m-muted)}
+.mech-panel b{display:block;color:var(--m-ink);font-weight:600;font-size:13px;margin-bottom:2px}.mech-panel span{display:block}.mech-panel em{display:block;font-style:normal;color:var(--m-ink);margin-top:4px}
+.mech-lesson{border:1px solid var(--m-rule);border-radius:9px;padding:9px 11px;margin:0 0 8px;font-size:13px}
+.mech-lesson .row{display:flex;align-items:center;gap:8px}.mech-lesson b{font-weight:600}.mech-lesson .n{color:var(--m-muted);font-size:12px;margin-right:auto}
+.mech-lesson button{font:inherit;font-size:12px;color:var(--m-ink);background:transparent;border:1px solid var(--m-rule);border-radius:7px;padding:4px 10px;cursor:pointer}
+.mech-lesson p{margin:6px 0 0;color:var(--m-muted)}`;
 
-  global.mech = { Figure, card, CSS, THEMES, MATS, boxGeo, cylGeo, tubeGeo, profileGeo, latheGeo, torusGeo, voluteGeo, superSection, sweep, loftGeo, roundedRect };
+  global.mech = { Figure, card, CSS, THEMES, MATS, boxGeo, cylGeo, tubeGeo, profileGeo, latheGeo, torusGeo, voluteGeo, superSection, sweep, loftGeo, plateGeo, roundedRect };
 })(window);

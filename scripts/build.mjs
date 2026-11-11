@@ -9,7 +9,7 @@ const dir = resolve(process.argv[2] || ".");
 const theme = process.argv.includes("--light") ? "light" : "dark";
 const kit = readFileSync(join(ROOT, "kit/mech.js"), "utf8");
 const scene = readFileSync(join(dir, "scene.js"), "utf8");
-const title = (scene.match(/title:\s*"([^"]+)"/) || [, "Figure"])[1];
+const title = (scene.match(/fig:\s*"[^"]*",\s*title:\s*"([^"]+)"/) || [, "Figure"])[1];
 const css = (kit.match(/const CSS = `([\s\S]*?)`;/) || [, ""])[1];
 
 const html = `<!DOCTYPE html>

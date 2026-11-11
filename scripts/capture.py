@@ -34,7 +34,12 @@ async def main():
             await pg.wait_for_timeout(1800)
             box = await pg.evaluate("(()=>{const r=document.querySelector('#fig').getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height}})()")
             await pg.screenshot(path=os.path.join(out, f"stage{s}.png"), clip=box, animations="disabled")
-        await pg.evaluate("setStage(0)"); await pg.wait_for_timeout(1500)
+        extra = os.environ.get("EXTRA")
+        if extra:
+            for i, js in enumerate(extra.split(";;")):
+                await pg.evaluate(js); await pg.wait_for_timeout(2200)
+                await pg.screenshot(path=os.path.join(out, f"stage9{i}.png"), clip=box, animations="disabled")
+        await pg.evaluate("window.setStage && setStage(0)"); await pg.wait_for_timeout(1500)
         print("audit:", await pg.evaluate("JSON.stringify(fig.audit())"))
         print("errors:", errs)
         await b.close()

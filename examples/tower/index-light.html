@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Structure of an office tower</title>
+<style>
+:root{--m-paper:#121212;--m-ink:#e8e8e8;--m-muted:#8a8a8a;--m-card:#161616;--m-rule:#2a2a2a;--m-lit:#fff;--m-mid:#6a6a6a}
+[data-theme=light]{--m-paper:#f7f7f5;--m-ink:#1a1a1a;--m-muted:#6b6b70;--m-card:#fff;--m-rule:#e2e2e0;--m-lit:#000;--m-mid:#9a9a9f}
+body{margin:0;background:var(--m-paper);color:var(--m-ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}
+.mech{max-width:680px;margin:28px auto;background:var(--m-card);border:1px solid var(--m-rule);border-radius:12px;padding:14px 16px 12px}
+.mech-head,.mech-foot{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--m-muted)}
+.mech-head b{color:var(--m-ink);font-weight:500}
+.mech-stage{outline:none;cursor:grab;margin:6px 0;border-radius:8px}
+.mech-stage:active{cursor:grabbing}.mech-stage:focus-visible{box-shadow:0 0 0 2px var(--m-muted)}
+.mech-stage canvas{display:block;width:100%;height:auto}
+.mech-foot code{font:12px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--m-ink)}
+.mech-keys{display:flex;flex-wrap:wrap;gap:6px 18px;margin:10px 0 4px;font-size:12px;color:var(--m-muted)}
+.mech-keys span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px;background:var(--m-mid)}
+.mech-keys .k-lit::before{background:var(--m-lit)}
+.mech-cap{font-size:13px;color:var(--m-muted);margin:6px 0 0}
+.mech-controls{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin:2px 0 8px;font-size:12px;color:var(--m-muted)}
+.mech-controls button{font:inherit;color:var(--m-ink);background:transparent;border:1px solid var(--m-rule);border-radius:7px;padding:5px 10px;cursor:pointer}
+.mech-controls button[aria-pressed=true]{background:var(--m-ink);color:var(--m-card);border-color:var(--m-ink)}
+.mech-controls input[type=range]{flex:1;min-width:120px;accent-color:var(--m-ink)}
+.mech-controls .sp{flex-basis:100%;height:0}
+.mech-stage{position:relative}
+.mech-over{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.mech-leaders{position:absolute;inset:0;width:100%;height:100%}
+.mech-leaders path{fill:none;stroke:var(--m-muted);stroke-width:1}.mech-leaders circle{fill:var(--m-ink)}
+.mech-label{position:absolute;transform:translateY(-50%);font-size:11.5px;line-height:1.2;white-space:nowrap;color:var(--m-ink);background:var(--m-card);border:1px solid var(--m-rule);border-radius:5px;padding:2px 6px}
+.mech-label.pin{transform:translate(-50%,-50%);background:transparent;border:0;font-weight:500;text-shadow:0 0 4px var(--m-card),0 0 4px var(--m-card)}
+.mech-panel{position:absolute;left:50%;transform:translateX(-50%);bottom:8px;width:max-content;max-width:min(340px,80%);background:var(--m-card);border:1px solid var(--m-rule);border-radius:9px;padding:9px 11px;font-size:12.5px;line-height:1.45;color:var(--m-muted)}
+.mech-panel b{display:block;color:var(--m-ink);font-weight:600;font-size:13px;margin-bottom:2px}.mech-panel span{display:block}.mech-panel em{display:block;font-style:normal;color:var(--m-ink);margin-top:4px}
+.mech-lesson{border:1px solid var(--m-rule);border-radius:9px;padding:9px 11px;margin:0 0 8px;font-size:13px}
+.mech-lesson .row{display:flex;align-items:center;gap:8px}.mech-lesson b{font-weight:600}.mech-lesson .n{color:var(--m-muted);font-size:12px;margin-right:auto}
+.mech-lesson button{font:inherit;font-size:12px;color:var(--m-ink);background:transparent;border:1px solid var(--m-rule);border-radius:7px;padding:4px 10px;cursor:pointer}
+.mech-lesson p{margin:6px 0 0;color:var(--m-muted)}</style>
+</head>
+<body>
+<div id="fig"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* mech: isometric technical figures on a real 3D core.
+   World: x right, y toward the viewer, z up. Units are millimetres of the real thing, or whatever you like.
+   Uses the global THREE (r128). Everything else is here. */
+(function (global) {
+  const T = global.THREE;
+  const THEMES = {
+    dark: { paper: 0x121212, face: 0x1b1b1b, hi: 0x565656, mid: 0x3c3c3c, lo: 0x282828, lit: 0xededed, edge: 0xd8d8d8, edgeLo: 0x7a7a7a, shadow: 0.6, ambient: 0.42 },
+    light: { paper: 0xf7f7f5, face: 0xffffff, hi: 0xcfcdc7, mid: 0xa5a39e, lo: 0x6c6b68, lit: 0x232326, edge: 0x2a2a2e, edgeLo: 0x77777c, shadow: 0.2, ambient: 0.3 },
+  };
+  const GRADIENT = [0.5, 0.68, 0.85, 1.0];
+  // Named materials. In style "real" they are physically based. In style "line" each one maps to a tone.
+  const MATS = {
+    castAl:   { color: 0xb4b8bc, metal: 0.85, rough: 0.58, tone: "hi" },
+    machined: { color: 0xdfe2e5, metal: 1.0, rough: 0.22, tone: "hi", lit: true },
+    steel:    { color: 0x8e9298, metal: 1.0, rough: 0.36, tone: "mid" },
+    darkSteel:{ color: 0x34373c, metal: 0.9, rough: 0.48, tone: "mid" },
+    iron:     { color: 0x5a4a41, metal: 0.75, rough: 0.62, tone: "mid" },
+    chrome:   { color: 0xffffff, metal: 1.0, rough: 0.07, tone: "hi" },
+    brass:    { color: 0xb08d48, metal: 1.0, rough: 0.3, tone: "mid" },
+    plastic:  { color: 0x17181b, metal: 0.0, rough: 0.52, tone: "lo" },
+    rubber:   { color: 0x0d0d0e, metal: 0.0, rough: 0.92, tone: "lo" },
+    glass:    { color: 0x05080b, metal: 0.6, rough: 0.05, tone: "lo", env: 1.4 },
+    paint:    { color: 0x1b3657, metal: 0.35, rough: 0.38, clearcoat: 1, tone: "hi" },
+    flat:     { color: 0x808080, metal: 0.05, rough: 0.55, tone: "mid" },
+    concrete: { color: 0xaeaba3, metal: 0.0, rough: 0.9, tone: "hi" },
+    light:    { color: 0xffffff, metal: 0, rough: 0.3, emissive: 0xffffff, tone: "hi", lit: true },
+  };
+
+  function gradientMap() {
+    const data = new Uint8Array(GRADIENT.map((v) => Math.round(v * 255)));
+    const tex = new T.DataTexture(data, GRADIENT.length, 1, T.LuminanceFormat);
+    tex.minFilter = tex.magFilter = T.NearestFilter;
+    tex.needsUpdate = true;
+    return tex;
+  }
+
+  // ---------- geometry helpers ----------
+  function roundedRect(w, d, r) {
+    r = Math.min(r, w / 2, d / 2);
+    const s = new T.Shape();
+    s.moveTo(-w / 2 + r, -d / 2);
+    s.lineTo(w / 2 - r, -d / 2); s.absarc(w / 2 - r, -d / 2 + r, r, -Math.PI / 2, 0, false);
+    s.lineTo(w / 2, d / 2 - r); s.absarc(w / 2 - r, d / 2 - r, r, 0, Math.PI / 2, false);
+    s.lineTo(-w / 2 + r, d / 2); s.absarc(-w / 2 + r, d / 2 - r, r, Math.PI / 2, Math.PI, false);
+    s.lineTo(-w / 2, -d / 2 + r); s.absarc(-w / 2 + r, -d / 2 + r, r, Math.PI, Math.PI * 1.5, false);
+    return s;
+  }
+  // A rounded box standing on z=0, centred at origin in x,y. bevel adds a small chamfer on the top edge.
+  function boxGeo({ w = 10, d = 10, h = 10, r = 0, bevel = 0, segments = 4 }) {
+    const shape = roundedRect(w, d, r);
+    const g = new T.ExtrudeGeometry(shape, { depth: h, bevelEnabled: bevel > 0, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 1, curveSegments: segments });
+    if (bevel > 0) g.translate(0, 0, bevel); // keep base on z=0 after the bevel
+    g.computeVertexNormals();
+    return g;
+  }
+  function cylGeo({ r = 5, h = 10, n = 32, axis = "z" }) {
+    const g = new T.CylinderGeometry(r, r, h, n, 1, false);
+    // CylinderGeometry is along y, centred. Rotate so it stands on z=0 (or lies along x / y).
+    if (axis === "z") { g.rotateX(Math.PI / 2); g.translate(0, 0, h / 2); }
+    else if (axis === "y") { g.translate(0, h / 2, 0); }
+    else if (axis === "x") { g.rotateZ(-Math.PI / 2); g.translate(h / 2, 0, 0); }
+    return g;
+  }
+  function tubeGeo(points, r = 1, { n = 10, bend = 2, closed = false } = {}) {
+    const v = points.map((p) => new T.Vector3(p[0], p[1], p[2]));
+    const curve = new T.CatmullRomCurve3(v, closed, "centripetal", 0.5);
+    return new T.TubeGeometry(curve, Math.max(8, points.length * 12 * bend), r, n, closed);
+  }
+  // A side profile in the x-z plane, extruded across y. points: [x,z] or { arc:[cx,cz,r,a0,a1,clockwise] }.
+  function profileGeo(points, depth, yCenter = 0) {
+    const s = new T.Shape(); let first = true;
+    for (const p of points) { if (p.arc) s.absarc(...p.arc); else if (first) { s.moveTo(p[0], p[1]); first = false; } else s.lineTo(p[0], p[1]); }
+    const g = new T.ExtrudeGeometry(s, { depth, bevelEnabled: false, curveSegments: 20 });
+    g.rotateX(Math.PI / 2); g.translate(0, yCenter + depth / 2, 0);
+    g.computeVertexNormals();
+    return g;
+  }
+
+  // Flat plate standing on z = 0 with rectangular holes: { w, d, h, holes: [{ x, y, w, d }] }.
+  function plateGeo({ w, d, h, holes = [] }) {
+    const s = new T.Shape(); s.moveTo(-w / 2, -d / 2); s.lineTo(w / 2, -d / 2); s.lineTo(w / 2, d / 2); s.lineTo(-w / 2, d / 2); s.closePath();
+    for (const o of holes) { const p = new T.Path(); p.moveTo(o.x - o.w / 2, o.y - o.d / 2); p.lineTo(o.x - o.w / 2, o.y + o.d / 2); p.lineTo(o.x + o.w / 2, o.y + o.d / 2); p.lineTo(o.x + o.w / 2, o.y - o.d / 2); p.closePath(); s.holes.push(p); }
+    return new T.ExtrudeGeometry(s, { depth: h, bevelEnabled: false });
+  }
+  // Round part from a profile of [radius, height] pairs, spun about an axis.
+  function latheGeo(profile, { axis = "z", n = 36 } = {}) {
+    const g = new T.LatheGeometry(profile.map((p) => new T.Vector2(Math.max(p[0], 0.0001), p[1])), n);
+    if (axis === "z") g.rotateX(Math.PI / 2); else if (axis === "x") g.rotateZ(-Math.PI / 2);
+    g.computeVertexNormals();
+    return g;
+  }
+  function torusGeo({ R = 5, r = 0.5, axis = "z", n = 32 } = {}) {
+    const g = new T.TorusGeometry(R, r, 10, n);
+    if (axis === "x") g.rotateY(Math.PI / 2); else if (axis === "y") g.rotateX(Math.PI / 2);
+    return g;
+  }
+  // Scroll housing (turbo or pump): a tube wound once round the axis x, growing from r0 to r1.
+  function voluteGeo({ R = 3.5, r0 = 1.2, r1 = 2.5, squash = 1 } = {}) {
+    const f = (u, v, t) => { const a = u * Math.PI * 1.96, b = v * Math.PI * 2, rt = r0 + (r1 - r0) * u, q = R + rt * Math.cos(b); t.set(rt * Math.sin(b) * squash, q * Math.cos(a), q * Math.sin(a)); };
+    const g = new T.ParametricGeometry(f, 56, 14); g.computeVertexNormals(); return g;
+  }
+  // Closed cross-section of a rounded body: half width W, from z = zb to z = zt. exp 2 is an ellipse, 5 is a soft box.
+  function superSection(W, zb, zt, exp = 4.5, count = 44) {
+    const sp = (c) => Math.sign(c) * Math.pow(Math.abs(c), 2 / exp), zc = (zb + zt) / 2, hh = (zt - zb) / 2;
+    return Array.from({ length: count }, (_, j) => { const a = (j / count) * Math.PI * 2; return [W * sp(Math.cos(a)), zc + hh * sp(Math.sin(a))]; });
+  }
+  // Interpolate rows of numbers (first column is x) with a Catmull-Rom spline. Returns `steps + 1` rows.
+  function sweep(keys, steps = 48) {
+    const n = keys.length, out = [];
+    const cr = (p0, p1, p2, p3, t) => 0.5 * (2 * p1 + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t + (-p0 + 3 * p1 - 3 * p2 + p3) * t * t * t);
+    for (let s = 0; s <= steps; s++) {
+      const f = (s / steps) * (n - 1), i = Math.min(n - 2, Math.floor(f)), t = f - i;
+      const k = (d) => keys[Math.max(0, Math.min(n - 1, i + d))];
+      out.push(keys[0].map((_, c) => cr(k(-1)[c], k(0)[c], k(1)[c], k(2)[c], t)));
+    }
+    return out;
+  }
+  // Skin a row of sections [{ x, pts: [[y, z], ...] }] into one smooth surface. filter(i, j, n) keeps or drops a panel.
+  function loftGeo(sections, { filter, caps = true } = {}) {
+    const n = sections[0].pts.length, pos = [], idx = [];
+    sections.forEach((s) => s.pts.forEach((p) => pos.push(s.x, p[0], p[1])));
+    for (let i = 0; i < sections.length - 1; i++) for (let j = 0; j < n; j++) {
+      if (filter && !filter(i, j, n, sections[i].x)) continue;
+      const a = i * n + j, b = i * n + ((j + 1) % n), c = (i + 1) * n + j, d = (i + 1) * n + ((j + 1) % n);
+      idx.push(a, c, b, b, c, d);
+    }
+    if (caps && !filter) for (const [si, flip] of [[0, false], [sections.length - 1, true]]) {
+      const s = sections[si], c = pos.length / 3, cy = s.pts.reduce((t, p) => t + p[0], 0) / n, cz = s.pts.reduce((t, p) => t + p[1], 0) / n;
+      pos.push(s.x, cy, cz);
+      for (let j = 0; j < n; j++) { const a = si * n + j, b = si * n + ((j + 1) % n); flip ? idx.push(c, a, b) : idx.push(c, b, a); }
+    }
+    const g = new T.BufferGeometry();
+    g.setAttribute("position", new T.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
+    return g;
+  }
+
+  // ---------- the figure ----------
+  class Figure {
+    constructor(mount, { theme = "dark", style = "line", width = 640, height = 420, azimuth = 40, elevation = 32, hint = "", readout = "" } = {}) {
+      this.mount = typeof mount === "string" ? document.querySelector(mount) : mount;
+      this.theme = THEMES[theme] ? theme : "dark";
+      this.T = THEMES[this.theme];
+      this.style = style === "real" ? "real" : "line"; this.lastInput = performance.now(); this.snap = false;
+      this.width = width; this.height = height;
+      this.azimuth = azimuth; this.elevation = elevation;
+      this.parts = [];          // every mesh we made, with its tone
+      this.updaters = [];       // per-frame fns (dt, t)
+      this.channels = {};       // named scalars that ease toward a target: { v, to, tau }
+      this.cut = null;          // clipping plane or null
+      this.view = null; this.viewTo = null; this.focusBox = null;
+      this.gradient = gradientMap();
+      this.running = false; this.visible = false; this.last = 0; this.time = 0;
+      this.reduced = global.matchMedia && global.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      this.#dom(hint, readout);
+      this.#scene();
+      this.#input();
+    }
+    #dom(hint, readout) {
+      const m = this.mount;
+      m.classList.add("mech");
+      m.innerHTML = `<div class="mech-stage" tabindex="0" role="img"><canvas></canvas><div class="mech-over"><svg class="mech-leaders"></svg></div><div class="mech-panel" hidden></div></div><div class="mech-foot"><span class="mech-hint">${hint}</span><code class="mech-readout">${readout}</code></div>`;
+      this.stage = m.querySelector(".mech-stage");
+      this.canvas = m.querySelector("canvas");
+      this.readoutEl = m.querySelector(".mech-readout");
+      this.over = m.querySelector(".mech-over"); this.leaders = m.querySelector(".mech-leaders"); this.panel = m.querySelector(".mech-panel");
+      this.infoDict = {}; this.labelList = []; this.labelSet = null; this.flowList = []; this.flowSet = null; this.selected = null; this.pickHandler = null;
+    }
+    #scene() {
+      const r = (this.renderer = new T.WebGLRenderer({ canvas: this.canvas, antialias: true, alpha: true }));
+      r.setPixelRatio(Math.min(global.devicePixelRatio || 1, 2));
+      r.setSize(this.width, this.height, false);
+      r.shadowMap.enabled = true; r.shadowMap.type = T.PCFSoftShadowMap;
+      r.localClippingEnabled = true;
+      r.setClearColor(0x000000, 0);
+      const s = (this.scene = new T.Scene());
+      this.root = new T.Group(); s.add(this.root);
+      const cam = (this.camera = new T.OrthographicCamera(-1, 1, 1, -1, -2000, 2000));
+      cam.up.set(0, 0, 1);
+      const real = this.style === "real";
+      if (real) {
+        r.outputEncoding = T.sRGBEncoding; r.toneMapping = T.ACESFilmicToneMapping; r.toneMappingExposure = this.theme === "dark" ? 0.95 : 1.1;
+        const es = new T.Scene(), sg = new T.SphereGeometry(60, 32, 16), col = [];
+        const top = this.theme === "dark" ? 0.22 : 0.7, low = this.theme === "dark" ? 0.01 : 0.2;
+        for (let i = 0; i < sg.attributes.position.count; i++) { const k = Math.pow((sg.attributes.position.getZ(i) / 60 + 1) / 2, 1.6), v = low + (top - low) * k; col.push(v, v, v * 1.04); }
+        sg.setAttribute("color", new T.Float32BufferAttribute(col, 3));
+        es.add(new T.Mesh(sg, new T.MeshBasicMaterial({ vertexColors: true, side: T.BackSide })));
+        const panel = (w, h, x, y, z, k) => { const m = new T.Mesh(new T.PlaneGeometry(w, h), new T.MeshBasicMaterial({ color: new T.Color(k, k, k), side: T.DoubleSide })); m.position.set(x, y, z); m.lookAt(0, 0, 0); es.add(m); };
+        panel(40, 24, -10, -22, 48, 5); panel(22, 44, -50, -20, 14, 2.6); panel(20, 36, 46, 26, 16, 1.2); panel(60, 8, 10, -52, 10, 1.6);
+        const pm = new T.PMREMGenerator(r); s.environment = pm.fromScene(es, 0.03).texture; pm.dispose();
+      }
+      s.add(new T.AmbientLight(0xffffff, real ? 0.08 : this.T.ambient));
+      const key = (this.key = new T.DirectionalLight(0xffffff, real ? 1.5 : 0.95));
+      key.position.set(-120, -220, 300);           // back-left and high: tops lightest, right faces darkest
+      key.castShadow = true;
+      key.shadow.mapSize.set(2048, 2048);
+      key.shadow.radius = 4; key.shadow.bias = -0.0008;
+      s.add(key);
+      const fill = new T.DirectionalLight(0xffffff, real ? 0.25 : 0.18); fill.position.set(200, 120, 80); s.add(fill);
+      // ground that only receives shadow
+      const gm = new T.ShadowMaterial({ opacity: this.T.shadow });
+      this.ground = new T.Mesh(new T.PlaneGeometry(4000, 4000), gm);
+      this.ground.receiveShadow = true; this.ground.position.z = -0.01;
+      s.add(this.ground);
+    }
+    #input() {
+      const st = this.stage;
+      let drag = null;
+      st.addEventListener("pointerdown", (e) => { this.touch(); drag = { x: e.clientX, y: e.clientY, az: this.azimuth, el: this.elevation }; st.setPointerCapture(e.pointerId); this.run(); });
+      st.addEventListener("pointermove", (e) => { if (!drag) return; this.azimuth = drag.az + (e.clientX - drag.x) * 0.4; this.elevation = Math.max(8, Math.min(80, drag.el + (e.clientY - drag.y) * 0.3)); this.fit(); this.run(); });
+      st.addEventListener("pointerup", (e) => { const d = drag; drag = null; if (d && Math.hypot(e.clientX - d.x, e.clientY - d.y) < 5 && e.target === this.canvas) this.#pick(e); });
+      st.addEventListener("keydown", (e) => {
+        this.touch();
+        if (e.key === "e" || e.key === "E") { this.setExplode(this.ch("explode") < 0.5 ? 1 : 0); e.preventDefault(); }
+        if (e.key === "c" || e.key === "C") { this.toggleCut(); e.preventDefault(); }
+        if (e.key === "ArrowLeft") { this.azimuth -= 15; this.fit(); e.preventDefault(); }
+        if (e.key === "ArrowRight") { this.azimuth += 15; this.fit(); e.preventDefault(); }
+        if (e.key === "ArrowUp") { this.elevation = Math.min(80, this.elevation + 8); this.fit(); e.preventDefault(); }
+        if (e.key === "ArrowDown") { this.elevation = Math.max(8, this.elevation - 8); this.fit(); e.preventDefault(); }
+        if ((e.key === " " || e.key === "Enter") && this.onPress) { this.onPress(e); e.preventDefault(); }
+        this.run();
+      });
+      if (global.IntersectionObserver) new IntersectionObserver((en) => { this.visible = en[en.length - 1].isIntersecting; if (this.visible) this.run(); }, { rootMargin: "120px 0px" }).observe(st);
+      else this.visible = true;
+    }
+
+    // ---- materials ----
+    material(tone = "hi", { lit = false, color, mat, side } = {}) {
+      let m;
+      if (this.style === "real") {
+        const d = MATS[mat] || MATS[color !== undefined ? "flat" : lit ? "machined" : { hi: "castAl", mid: "steel", lo: "plastic" }[tone] || "castAl"];
+        const o = { color: color !== undefined ? color : d.color, metalness: d.metal, roughness: d.rough, envMapIntensity: d.env || 1 };
+        m = d.clearcoat ? new T.MeshPhysicalMaterial(Object.assign(o, { clearcoat: d.clearcoat, clearcoatRoughness: 0.08 })) : new T.MeshStandardMaterial(o);
+        if (d.emissive) m.emissive.set(d.emissive);
+      } else {
+        const d = MATS[mat];
+        if (d) { tone = d.tone; lit = lit || !!d.lit; }
+        const c = color !== undefined ? color : lit ? this.T.lit : this.T[tone] ?? this.T.hi;
+        m = new T.MeshToonMaterial({ color: c, gradientMap: this.gradient });
+      }
+      if (side === "double") m.side = T.DoubleSide;
+      m.clippingPlanes = this.cut ? [this.cut] : [];
+      m.clipShadows = true;
+      return m;
+    }
+    // ---- adding parts ----
+    // geo: a BufferGeometry standing on z=0. opts: tone, lit, at:[x,y,z], rot:[rx,ry,rz], edges (deg threshold or false), name, explode:[dx,dy,dz], group
+    add(geo, { tone = "hi", lit = false, color, mat, side, at = [0, 0, 0], rot = [0, 0, 0], edges = 28, edgeTone, name, explode, channel = "explode", group, shadow = true, tag, info } = {}) {
+      const mesh = new T.Mesh(geo, this.material(tone, { lit, color, mat, side }));
+      const real = this.style === "real"; if (MATS[mat] && !real) { tone = MATS[mat].tone; lit = lit || !!MATS[mat].lit; }
+      mesh.castShadow = shadow; mesh.receiveShadow = true;
+      mesh.position.set(...at); mesh.rotation.set(...rot);
+      mesh.name = name || "";
+      if (edges !== false) {
+        const eg = new T.EdgesGeometry(geo, edges);
+        const em = new T.LineBasicMaterial({ color: edgeTone === "lo" ? this.T.edgeLo : lit ? this.T.lit : tone === "lo" ? this.T.edgeLo : this.T.edge, transparent: true, opacity: tone === "lo" ? 0.7 : 0.9 });
+        em.userData.base = em.opacity;
+        if (real) { em.color.set(this.T.edge); em.opacity = 0; }
+        em.clippingPlanes = this.cut ? [this.cut] : [];
+        const lines = new T.LineSegments(eg, em);
+        lines.renderOrder = 1; lines.visible = !real;
+        mesh.add(lines);
+        mesh.userData.edges = lines;
+      }
+      mesh.userData.rest = mesh.position.clone();
+      mesh.userData.explode = explode ? new T.Vector3(...explode) : null;
+      mesh.userData.channel = channel; mesh.userData.tag = tag; if (info) mesh.userData.info = info; mesh.userData.alpha = 1; mesh.userData.alphaTo = 1; mesh.userData.shadow = shadow;
+      (group || this.root).add(mesh);
+      this.parts.push(mesh);
+      return mesh;
+    }
+    group(opts = {}) {
+      const g = new T.Group();
+      if (opts.at) g.position.set(...opts.at);
+      if (opts.rot) g.rotation.set(...opts.rot);
+      g.userData.rest = g.position.clone();
+      g.userData.explode = opts.explode ? new T.Vector3(...opts.explode) : null;
+      g.userData.channel = opts.channel || "explode"; if (opts.info) g.userData.info = opts.info;
+      (opts.group || this.root).add(g);
+      this.parts.push(g);
+      return g;
+    }
+    // sugar
+    box(o, opts) { return this.add(boxGeo(o), opts); }
+    cyl(o, opts) { return this.add(cylGeo(o), opts); }
+    lathe(profile, o, opts) { return this.add(latheGeo(profile, o), Object.assign({ edges: 50 }, opts)); }
+    torus(o, opts) { return this.add(torusGeo(o), Object.assign({ edges: false }, opts)); }
+    tube(points, r, opts = {}) { return this.add(tubeGeo(points, r, opts), Object.assign({ edges: false, tone: "mid" }, opts)); }
+    // small decorations
+    screws(points, r = 0.6, opts = {}) { return points.map(([x, y, z]) => this.cyl({ r, h: 0.3, n: 10 }, Object.assign({ tone: "lo", at: [x, y, z], edges: false, shadow: false }, opts))); }
+    led(at, r = 0.9, opts = {}) {
+      const pass = { group: opts.group, tag: opts.tag, explode: opts.explode, channel: opts.channel, edges: false, shadow: false };
+      this.cyl({ r: r + 0.4, h: 0.4, n: 12 }, Object.assign({ mat: "plastic", at }, pass));
+      const dome = this.cyl({ r, h: 0.6, n: 12 }, Object.assign({ tone: "mid", at: [at[0], at[1], at[2] + 0.4] }, pass));
+      dome.userData.led = { on: new T.Color(opts.color || this.T.lit), off: new T.Color(this.T.mid) };
+      return dome;
+    }
+    setLed(mesh, on) { const l = mesh.userData.led; if (!l || l.state === on) return; l.state = on; mesh.material.color.copy(on ? l.on : l.off); mesh.material.emissive.copy(on ? l.on : new T.Color(0)).multiplyScalar(0.6); }
+    // glow: 0..1 heat on a part (emissive), for hot or active things
+    glow(mesh, k, color = 0xff8a2a) { mesh.material.emissive.set(color).multiplyScalar(Math.max(0, Math.min(1, k))); }
+    // ghost: fade parts to an opacity (0 hides them). Accepts meshes, groups or tags.
+    ghost(what, alpha) {
+      const set = (o) => o.traverse((m) => { if (m.isMesh && m.userData.alphaTo !== undefined) m.userData.alphaTo = alpha; });
+      for (const w of [].concat(what)) { if (typeof w === "string") this.parts.forEach((p) => p.userData.tag === w && set(p)); else set(w); }
+      this.run();
+    }
+    // channels: named numbers that ease to a target. Read with ch(name).
+    to(name, value, tau = 0.25) { const c = (this.channels[name] ||= { v: 0, to: 0, tau }); c.to = value; c.tau = tau; this.run(); }
+    ch(name) { return this.channels[name] ? this.channels[name].v : 0; }
+    fins(count, { x = 0, y = 0, z = 0, w = 1.2, d = 10, h = 2.5, gap = 3 } = {}, opts = {}) {
+      const out = [];
+      for (let i = 0; i < count; i++) out.push(this.box({ w, d, h, r: 0.2 }, Object.assign({ tone: "mid", at: [x + i * gap, y, z], edges: 40 }, opts)));
+      return out;
+    }
+    knob({ r = 3, h = 2.6, knurls = 24 } = {}, opts = {}) {
+      const g = this.group(opts);
+      this.cyl({ r, h, n: 32 }, { tone: "mid", group: g });
+      for (let i = 0; i < knurls; i++) { const a = (i / knurls) * Math.PI * 2; this.box({ w: 0.35, d: 0.6, h: h * 0.8 }, { tone: "lo", at: [Math.cos(a) * r, Math.sin(a) * r, h * 0.1], rot: [0, 0, a], edges: false, shadow: false, group: g }); }
+      this.box({ w: r * 0.8, d: 0.4, h: 0.3 }, { tone: "hi", lit: true, at: [-r * 0.35, 0, h], edges: false, shadow: false, group: g });
+      return g;
+    }
+
+    // ---- camera ----
+    // focus(target?, { azimuth, elevation, pad }): ease the camera to frame an object (default: everything).
+    focus(target, { azimuth, elevation, pad = 1.12, snap = false } = {}) {
+      if (azimuth !== undefined) this.azimuth = azimuth;
+      if (elevation !== undefined) this.elevation = elevation;
+      this.focusBox = target && target.isBox3 ? target.clone() : new T.Box3().setFromObject(target || this.root);
+      this.pad = pad;
+      this.fit(snap);
+      this.run();
+    }
+    fit(snap = false) {
+      const box = this.focusBox || (this.focusBox = new T.Box3().setFromObject(this.root));
+      if (box.isEmpty()) return;
+      const a = (this.azimuth * Math.PI) / 180, e = (this.elevation * Math.PI) / 180;
+      const dir = new T.Vector3(Math.sin(a) * Math.cos(e), -Math.cos(a) * Math.cos(e), Math.sin(e));
+      const c = box.getCenter(new T.Vector3());
+      const right = new T.Vector3().crossVectors(new T.Vector3(0, 0, 1), dir).normalize();
+      const up = new T.Vector3().crossVectors(dir, right).normalize();
+      let hw = 0, hh = 0;
+      for (let i = 0; i < 8; i++) {
+        const p = new T.Vector3(i & 1 ? box.max.x : box.min.x, i & 2 ? box.max.y : box.min.y, i & 4 ? box.max.z : box.min.z).sub(c);
+        hw = Math.max(hw, Math.abs(p.dot(right))); hh = Math.max(hh, Math.abs(p.dot(up)));
+      }
+      const asp = this.width / this.height;
+      const half = Math.max(hh, hw / asp) * (this.pad || 1.12);
+      this.viewTo = { c, half, az: this.azimuth, el: this.elevation };
+      if (snap || !this.view) this.view = { c: c.clone(), half, az: this.azimuth, el: this.elevation };
+      if (!this.shadowSet) {
+        const all = new T.Box3().setFromObject(this.root), ac = all.getCenter(new T.Vector3());
+        const sz = Math.max(all.max.x - all.min.x, all.max.y - all.min.y) * 0.75;
+        Object.assign(this.key.shadow.camera, { left: -sz, right: sz, top: sz, bottom: -sz, near: 1, far: 1600 });
+        this.key.target.position.copy(ac); this.scene.add(this.key.target);
+        this.key.position.copy(ac).add(new T.Vector3(-140, -260, 420));
+        this.key.shadow.camera.updateProjectionMatrix();
+        this.shadowSet = true;
+      }
+      this.fitted = true;
+    }
+    #applyView() {
+      const v = this.view, a = (v.az * Math.PI) / 180, e = (v.el * Math.PI) / 180;
+      const dir = new T.Vector3(Math.sin(a) * Math.cos(e), -Math.cos(a) * Math.cos(e), Math.sin(e));
+      this.camera.position.copy(v.c).addScaledVector(dir, 900);
+      this.camera.lookAt(v.c);
+      const asp = this.width / this.height;
+      Object.assign(this.camera, { left: -v.half * asp, right: v.half * asp, top: v.half, bottom: -v.half });
+      this.camera.updateProjectionMatrix();
+    }
+
+    // ---- motion ----
+    onFrame(fn) { this.updaters.push(fn); }
+    setExplode(t, channel = "explode") { this.to(channel, Math.max(0, Math.min(1, t))); }
+    toggleCut() { if (this.cut) this.setCut(null); else this.setCut(this.cutPlane || { normal: [0, 1, 0], at: 0 }); }
+    // plane: { normal:[x,y,z], at: distance } keeps the half-space on the normal's side
+    setCut(plane) {
+      this.cutPlane = plane || this.cutPlane;
+      this.cut = plane ? new T.Plane(new T.Vector3(...plane.normal).normalize(), -plane.at) : null;
+      for (const p of this.parts) {
+        if (!p.isMesh) continue;
+        p.material.clippingPlanes = this.cut ? [this.cut] : [];
+        if (p.userData.edges) p.userData.edges.material.clippingPlanes = this.cut ? [this.cut] : [];
+      }
+      this.run();
+    }
+    spin(obj, axis = "z", rpm = 60, scale = 1) { this.onFrame((dt) => { const w = (rpm * scale) / 60 * 2 * Math.PI; obj.rotation[axis] += w * dt; }); }
+    shadow(k) { this.ground.material.opacity = this.T.shadow * k; }
+    // ---- teaching layer ----
+    // describe({ key: { name, role, fact } }): what each part is. Parts carry `info: key`.
+    describe(dict) { Object.assign(this.infoDict, dict); }
+    infoOf(o) { while (o) { if (o.userData && o.userData.info) return o.userData.info; o = o.parent; } return null; }
+    find(key) { let hit = null; this.root.traverse((o) => { if (!hit && o.userData.info === key) hit = o; }); return hit; }
+    #pick(e) {
+      const r = this.canvas.getBoundingClientRect(), ray = new T.Raycaster();
+      ray.setFromCamera(new T.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), this.camera);
+      const list = this.parts.filter((p) => p.isMesh && p.visible && p.userData.alpha > 0.25 && p.userData.tag !== "flow");
+      let key = null; for (const h of ray.intersectObjects(list, false)) { key = this.infoOf(h.object); if (key) break; }
+      if (this.pickHandler) this.pickHandler(key); else this.select(key);
+    }
+    select(key) {
+      this.selected = key && this.infoDict[key] ? key : null;
+      const d = this.selected && this.infoDict[this.selected];
+      if (!this.pickHandler) this.say(d ? `<b>${d.name}</b><span>${d.role || ""}</span>${d.fact ? `<em>${d.fact}</em>` : ""}` : "");
+      this.run();
+    }
+    say(html) { this.panel.innerHTML = html; this.panel.hidden = !html; }
+    // label(key, { text, on, set, pin }): a pointer to a part. `on` is an object or a world point. Show a set with labels(set).
+    label(key, { text, on, set = "all", pin = false } = {}) {
+      const el = document.createElement("div"); el.className = "mech-label" + (pin ? " pin" : ""); el.textContent = text || (this.infoDict[key] ? this.infoDict[key].name : key); el.hidden = true; this.over.appendChild(el);
+      const obj = Array.isArray(on) ? null : on || this.find(key); let local = null, probe = null;
+      if (obj) { this.root.updateMatrixWorld(true); const c = new T.Box3().setFromObject(obj).getCenter(new T.Vector3()); local = obj.worldToLocal(c); obj.traverse((m) => { if (!probe && m.isMesh) probe = m; }); }
+      this.labelList.push({ key, el, obj, local, probe, world: Array.isArray(on) ? new T.Vector3(...on) : null, set, pin });
+    }
+    labels(set) { this.labelSet = set || null; this.run(); }
+    // flow(points, opts): dots that move along a path. Show a set with flows(set).
+    flow(points, { color = 0x4aa8ff, count = 8, speed = 0.3, r = 0.8, group, set = "all" } = {}) {
+      const curve = new T.CatmullRomCurve3(points.map((p) => new T.Vector3(...p)), false, "centripetal", 0.5), dots = [];
+      for (let i = 0; i < count; i++) { const m = this.add(new T.SphereGeometry(r, 10, 8), { color, group, tag: "flow", edges: false, shadow: false }); m.material.emissive.set(color); m.visible = false; dots.push(m); }
+      const f = { curve, dots, speed, set, rate: 1 }; this.flowList.push(f); return f;
+    }
+    flows(set) { this.flowSet = set || null; this.run(); }
+    // lesson(steps): a guided walk. steps: [{ title, text, go() }]. Returns { open(i), close() }.
+    lesson(steps, { onClose } = {}) {
+      const el = document.createElement("div"); el.className = "mech-lesson"; el.hidden = true;
+      el.innerHTML = `<div class="row"><b></b><span class="n"></span><button data-d="-1" aria-label="Previous step">Back</button><button data-d="1" aria-label="Next step">Next</button><button data-d="0" aria-label="Close lesson">Close</button></div><p></p>`;
+      this.stage.after(el);
+      let i = 0;
+      const show = () => { el.querySelector("b").textContent = steps[i].title; el.querySelector(".n").textContent = "Step " + (i + 1) + " of " + steps.length; el.querySelector("p").textContent = steps[i].text; steps[i].go(); this.run(); };
+      const api = { open: (k = 0) => { i = k; el.hidden = false; this.inLesson = true; show(); }, close: () => { el.hidden = true; this.inLesson = false; onClose && onClose(); } };
+      el.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; this.touch(); const d = +b.dataset.d; if (!d) return api.close(); i = Math.max(0, Math.min(steps.length - 1, i + d)); show(); });
+      return api;
+    }
+    // quiz(questions): [{ ask, key }]. The reader clicks the part. Returns { start(), stop() }.
+    quiz(questions, { onEnd } = {}) {
+      let i = 0, score = 0, lock = false;
+      const ask = () => this.say(`<b>Question ${i + 1} of ${questions.length}</b><span>${questions[i].ask}</span>`);
+      const stop = () => { this.pickHandler = null; this.say(""); onEnd && onEnd(); };
+      return { stop, start: () => { i = 0; score = 0; lock = false; this.select(null); this.pickHandler = (key) => {
+        if (lock) return; const q = questions[i], d = this.infoDict[key];
+        if (key === q.key || (q.also || []).includes(key)) { score++; lock = true; this.selected = key; this.say(`<b>Correct</b><span>${d.name}: ${d.role || ""}</span>`); }
+        else { this.say(`<b>Question ${i + 1} of ${questions.length}</b><span>${q.ask}</span><em>${d ? "That is the " + d.name.toLowerCase() + ". Try again." : "Click a part."}</em>`); if (!d) return; lock = false; return; }
+        setTimeout(() => { lock = false; this.selected = null; i++; if (i < questions.length) ask(); else { this.pickHandler = null; this.say(`<b>Done</b><span>${score} of ${questions.length} correct.</span>`); onEnd && onEnd(); } }, 1500);
+      }; ask(); } };
+    }
+    plate(o, opts) { return this.add(plateGeo(o), opts); }
+    #teach(dt) {
+      // highlight the selected parts
+      const sel = this.selected;
+      for (const p of this.parts) { if (!p.isMesh) continue; const u = p.userData; if (u.ik === undefined) u.ik = this.infoOf(p); const on = !!sel && u.ik === sel; if (on) p.material.emissive.setHex(0x2f8cff).multiplyScalar(0.55); else if (u.hl) p.material.emissive.setHex(0); u.hl = on; }
+      // flows
+      for (const f of this.flowList) { const on = this.flowSet && (f.set === this.flowSet || f.set === "all"); f.t = ((f.t || 0) + dt * f.speed * f.rate) % 1; f.dots.forEach((d, i) => { d.visible = !!on; if (on) d.position.copy(f.curve.getPointAt((f.t + i / f.dots.length) % 1)); }); }
+      // labels: two columns with leader lines, or pinned at the part
+      const W = this.stage.clientWidth, H = this.canvas.clientHeight, v = new T.Vector3(), cols = [[], []]; let svg = "";
+      for (const L of this.labelList) {
+        const on = this.labelSet && (L.set === this.labelSet || L.set === "all") && (!L.probe || (L.probe.visible && L.probe.userData.alpha > 0.3));
+        L.el.hidden = !on; if (!on) continue;
+        if (L.obj) L.obj.localToWorld(v.copy(L.local)); else v.copy(L.world);
+        v.project(this.camera); L.x = (v.x + 1) / 2 * W; L.y = (1 - v.y) / 2 * H;
+        if (L.pin) { L.el.style.left = L.x + "px"; L.el.style.top = L.y + "px"; } else cols[L.x < W / 2 ? 0 : 1].push(L);
+      }
+      cols.forEach((col, side) => {
+        col.sort((a, b) => a.y - b.y); let y = 14;
+        for (const L of col) { L.ly = Math.max(y, Math.min(H - 14, L.y)); y = L.ly + 26; }
+        for (let k = col.length - 1, lim = H - 14; k >= 0; k--) { col[k].ly = Math.min(col[k].ly, lim); lim = col[k].ly - 26; }
+        for (const L of col) {
+          if (!L.w) L.w = L.el.offsetWidth;
+          L.el.style.top = L.ly + "px"; L.el.style.left = (side ? W - 8 - L.w : 8) + "px";
+          const ex = side ? W - 12 - L.w : 12 + L.w;
+          svg += `<path d="M${ex} ${L.ly}L${ex + (side ? -14 : 14)} ${L.ly}L${L.x.toFixed(1)} ${L.y.toFixed(1)}"/><circle cx="${L.x.toFixed(1)}" cy="${L.y.toFixed(1)}" r="2.2"/>`;
+        }
+      });
+      if (svg !== this.lastSvg) { this.leaders.innerHTML = svg; this.lastSvg = svg; }
+    }
+    touch() { this.lastInput = performance.now(); }
+    // tour(step): when nobody touches the figure for `idle` seconds, call step() every `every` seconds.
+    tour(step, { idle = 14, every = 7 } = {}) { this.tourCfg = { step, idle: idle * 1000, every: every * 1000, next: 0 }; }
+    dispose() { this.dead = true; if (this.frame) cancelAnimationFrame(this.frame); this.renderer.dispose(); }
+    // audit(): counts, plus parts that touch nothing (a part must sit on another part).
+    audit() {
+      const ms = []; this.root.updateMatrixWorld(true); this.root.traverse((o) => { if (o.isMesh && o.visible) ms.push(o); });
+      let tris = 0; const tags = {};
+      const boxes = ms.map((m) => { const g = m.geometry; tris += (g.index ? g.index.count : g.attributes.position.count) / 3; const t = m.userData.tag || "untagged"; tags[t] = (tags[t] || 0) + 1; g.computeBoundingBox(); return g.boundingBox.clone().applyMatrix4(m.matrixWorld).expandByScalar(0.6); });
+      const floating = [];
+      boxes.forEach((b, i) => { if (!boxes.some((c, j) => j !== i && b.intersectsBox(c))) { const c = b.getCenter(new T.Vector3()); floating.push((ms[i].userData.tag || "untagged") + " at " + [c.x, c.y, c.z].map((v) => Math.round(v)).join(",")); } });
+      return { parts: ms.length, triangles: Math.round(tris), tags, floating };
+    }
+    readout(text) { if (this.readoutEl.textContent !== text) this.readoutEl.textContent = text; }
+
+    run() { if (!this.frame && this.visible && !this.dead) { this.last = 0; this.frame = requestAnimationFrame((t) => this.#tick(t)); } }
+    #tick(now) {
+      if (this.dead) return;
+      const dt = this.last ? Math.min((now - this.last) / 1000, 1 / 30) : 1 / 60;
+      const tc = this.tourCfg; if (tc && !this.reduced && !this.inLesson && !this.pickHandler && !this.selected && now - this.lastInput > tc.idle && now > tc.next) { tc.next = now + tc.every; tc.step(); }
+      this.last = now; this.time += dt;
+      if (!this.fitted) this.fit(true);
+      const ease = (tau) => (this.reduced || this.snap ? 1 : 1 - Math.exp(-dt / tau));
+      for (const k in this.channels) { const c = this.channels[k]; c.v += (c.to - c.v) * ease(c.tau); if (Math.abs(c.to - c.v) < 1e-4) c.v = c.to; }
+      const v = this.view, w = this.viewTo, kv = ease(0.35);
+      v.c.lerp(w.c, kv); v.half += (w.half - v.half) * kv; v.az += (w.az - v.az) * kv; v.el += (w.el - v.el) * kv;
+      this.#applyView();
+      for (const p of this.parts) {
+        const u = p.userData;
+        if (u.explode) p.position.copy(u.rest).addScaledVector(u.explode, this.ch(u.channel));
+        if (p.isMesh && u.alpha !== u.alphaTo) {
+          u.alpha += (u.alphaTo - u.alpha) * ease(0.22); if (Math.abs(u.alphaTo - u.alpha) < 0.004) u.alpha = u.alphaTo;
+          const tr = u.alpha < 0.999; if (p.material.transparent !== tr) { p.material.transparent = tr; p.material.needsUpdate = true; }
+          p.material.opacity = u.alpha; p.material.depthWrite = u.alpha > 0.95; p.castShadow = u.shadow && u.alpha > 0.6;
+          p.visible = u.alpha > 0.004;
+          if (u.edges) {
+            const em = u.edges.material;
+            if (this.style === "real") { em.opacity = u.alpha < 0.6 && u.alpha > 0.004 ? 0.34 : 0; u.edges.visible = em.opacity > 0; }
+            else em.opacity = em.userData.base * Math.min(1, u.alpha * 2.2 + (u.alpha > 0.004 ? 0.12 : 0));
+          }
+        }
+      }
+      for (const f of this.updaters) f(dt, this.time);
+      this.#teach(dt);
+      this.renderer.render(this.scene, this.camera);
+      this.frame = this.visible ? requestAnimationFrame((t) => this.#tick(t)) : 0;
+    }
+  }
+
+  // ---------- card ----------
+  function card(mount, { fig = "Fig 1", title = "", keys = [], caption = "" }) {
+    const m = typeof mount === "string" ? document.querySelector(mount) : mount;
+    const head = document.createElement("div"); head.className = "mech-head"; head.innerHTML = `<span>${fig}</span><b>${title}</b>`;
+    const k = document.createElement("div"); k.className = "mech-keys"; k.innerHTML = keys.map((x) => `<span class="k-${x.mark}">${x.label}</span>`).join("");
+    const c = document.createElement("p"); c.className = "mech-cap"; c.textContent = caption;
+    m.prepend(head); m.append(k, c);
+  }
+
+  const CSS = `
+:root{--m-paper:#121212;--m-ink:#e8e8e8;--m-muted:#8a8a8a;--m-card:#161616;--m-rule:#2a2a2a;--m-lit:#fff;--m-mid:#6a6a6a}
+[data-theme=light]{--m-paper:#f7f7f5;--m-ink:#1a1a1a;--m-muted:#6b6b70;--m-card:#fff;--m-rule:#e2e2e0;--m-lit:#000;--m-mid:#9a9a9f}
+body{margin:0;background:var(--m-paper);color:var(--m-ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}
+.mech{max-width:680px;margin:28px auto;background:var(--m-card);border:1px solid var(--m-rule);border-radius:12px;padding:14px 16px 12px}
+.mech-head,.mech-foot{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--m-muted)}
+.mech-head b{color:var(--m-ink);font-weight:500}
+.mech-stage{outline:none;cursor:grab;margin:6px 0;border-radius:8px}
+.mech-stage:active{cursor:grabbing}.mech-stage:focus-visible{box-shadow:0 0 0 2px var(--m-muted)}
+.mech-stage canvas{display:block;width:100%;height:auto}
+.mech-foot code{font:12px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--m-ink)}
+.mech-keys{display:flex;flex-wrap:wrap;gap:6px 18px;margin:10px 0 4px;font-size:12px;color:var(--m-muted)}
+.mech-keys span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px;background:var(--m-mid)}
+.mech-keys .k-lit::before{background:var(--m-lit)}
+.mech-cap{font-size:13px;color:var(--m-muted);margin:6px 0 0}
+.mech-controls{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin:2px 0 8px;font-size:12px;color:var(--m-muted)}
+.mech-controls button{font:inherit;color:var(--m-ink);background:transparent;border:1px solid var(--m-rule);border-radius:7px;padding:5px 10px;cursor:pointer}
+.mech-controls button[aria-pressed=true]{background:var(--m-ink);color:var(--m-card);border-color:var(--m-ink)}
+.mech-controls input[type=range]{flex:1;min-width:120px;accent-color:var(--m-ink)}
+.mech-controls .sp{flex-basis:100%;height:0}
+.mech-stage{position:relative}
+.mech-over{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.mech-leaders{position:absolute;inset:0;width:100%;height:100%}
+.mech-leaders path{fill:none;stroke:var(--m-muted);stroke-width:1}.mech-leaders circle{fill:var(--m-ink)}
+.mech-label{position:absolute;transform:translateY(-50%);font-size:11.5px;line-height:1.2;white-space:nowrap;color:var(--m-ink);background:var(--m-card);border:1px solid var(--m-rule);border-radius:5px;padding:2px 6px}
+.mech-label.pin{transform:translate(-50%,-50%);background:transparent;border:0;font-weight:500;text-shadow:0 0 4px var(--m-card),0 0 4px var(--m-card)}
+.mech-panel{position:absolute;left:50%;transform:translateX(-50%);bottom:8px;width:max-content;max-width:min(340px,80%);background:var(--m-card);border:1px solid var(--m-rule);border-radius:9px;padding:9px 11px;font-size:12.5px;line-height:1.45;color:var(--m-muted)}
+.mech-panel b{display:block;color:var(--m-ink);font-weight:600;font-size:13px;margin-bottom:2px}.mech-panel span{display:block}.mech-panel em{display:block;font-style:normal;color:var(--m-ink);margin-top:4px}
+.mech-lesson{border:1px solid var(--m-rule);border-radius:9px;padding:9px 11px;margin:0 0 8px;font-size:13px}
+.mech-lesson .row{display:flex;align-items:center;gap:8px}.mech-lesson b{font-weight:600}.mech-lesson .n{color:var(--m-muted);font-size:12px;margin-right:auto}
+.mech-lesson button{font:inherit;font-size:12px;color:var(--m-ink);background:transparent;border:1px solid var(--m-rule);border-radius:7px;padding:4px 10px;cursor:pointer}
+.mech-lesson p{margin:6px 0 0;color:var(--m-muted)}`;
+
+  global.mech = { Figure, card, CSS, THEMES, MATS, boxGeo, cylGeo, tubeGeo, profileGeo, latheGeo, torusGeo, voluteGeo, superSection, sweep, loftGeo, plateGeo, roundedRect };
+})(window);
+
+</script>
+<script>
+/* Structure of an office tower. A generic building, not a real one. Units: metres. z up, ground at z = 0.
+   The sizes are typical values chosen for the model: 20 storeys of 4 m, an 8 m column grid,
+   a concrete core for the lifts, a steel frame, and a mat foundation on 24 piles. */
+(function () {
+  const THEME = document.documentElement.dataset.theme || "dark";
+  // ---------- the model ----------
+  const M = { storeys: 20, h: 4, xs: [-20, -12, -4, 4, 12, 20], ys: [-12, -4, 4, 12], core: 8, pileLen: 16 };
+  M.height = M.storeys * M.h;
+  M.inCore = (x, y) => Math.abs(x) <= M.core / 2 && Math.abs(y) <= M.core / 2;
+  M.grid = M.xs.flatMap((x) => M.ys.map((y) => [x, y]));
+  M.columns = M.grid.filter(([x, y]) => !M.inCore(x, y));
+  const state = { stage: 0, built: M.storeys, labels: true, flow: null, style: location.hash === "#line" ? "line" : "real" };
+  let F = null;
+
+  function start() {
+    if (F) F.dispose();
+    F = new mech.Figure("#fig", { theme: THEME, style: state.style, width: 760, height: 560, azimuth: 36, elevation: 20 });
+    const REAL = state.style === "real", AMBER = 0xff8a2a, BLUE = 0x4aa8ff;
+
+    // ---------- below ground ----------
+    const soil = F.box({ w: 72, d: 56, h: 19.5 }, { color: 0x6b5a48, at: [0, 0, -19.8], tag: "soil", edges: 40, shadow: false });
+    const firm = F.box({ w: 72, d: 56, h: 4 }, { color: 0x3f372f, at: [0, 0, -23.8], tag: "soil", info: "firm", shadow: false });
+    F.box({ w: 44, d: 28, h: 2, r: 0.4 }, { mat: "concrete", at: [0, 0, -2.3], tag: "found", info: "mat" });
+    F.box({ w: 44, d: 28, h: 0.3 }, { mat: "concrete", at: [0, 0, -0.3], tag: "found", info: "slab" });
+    const piles = M.grid.map(([x, y]) => F.cyl({ r: 0.6, h: M.pileLen, n: 12 }, { mat: "concrete", at: [x, y, -2.3 - M.pileLen], tag: "found", info: "pile" }));
+
+    // ---------- storeys ----------
+    const st = [];
+    for (let k = 0; k < M.storeys; k++) {
+      const z = k * M.h, S = { slab: [], beam: [], col: [], core: [], facade: [] };
+      S.slab.push(F.plate({ w: 40.6, d: 24.6, h: 0.3, holes: [{ x: 0, y: 0, w: 7.2, d: 7.2 }] }, { mat: "concrete", at: [0, 0, z + M.h - 0.3], tag: "slab", info: "slab" }));
+      for (const y of M.ys) S.beam.push(F.box({ w: 40, d: 0.35, h: 0.6 }, { mat: "steel", at: [0, y, z + M.h - 0.9], tag: "beam", info: "beam", edges: false }));
+      for (const x of M.xs) S.beam.push(F.box({ w: 0.35, d: 24, h: 0.6 }, { mat: "steel", at: [x, 0, z + M.h - 0.9], tag: "beam", info: "beam", edges: false }));
+      for (const [x, y] of M.columns) S.col.push(F.box({ w: 0.6, d: 0.6, h: M.h - 0.9 }, { mat: "darkSteel", at: [x, y, z], tag: "col", info: "column", edges: false }));
+      S.core.push(F.plate({ w: M.core, d: M.core, h: M.h, holes: [{ x: 0, y: 0, w: 7.2, d: 7.2 }] }, { mat: "concrete", at: [0, 0, z], tag: "core", info: "core" }));
+      for (const s of [-1, 1]) {
+        S.facade.push(F.box({ w: 40.9, d: 0.15, h: M.h }, { mat: "glass", color: 0x1d3b57, at: [0, s * 12.4, z], tag: "facade", info: "facade", edges: false }));
+        S.facade.push(F.box({ w: 0.15, d: 24.9, h: M.h }, { mat: "glass", color: 0x1d3b57, at: [s * 20.4, 0, z], tag: "facade", info: "facade", edges: false }));
+        S.facade.push(F.box({ w: 41.1, d: 0.25, h: 0.5 }, { mat: "castAl", at: [0, s * 12.45, z + M.h - 0.5], tag: "facade", info: "facade", edges: false, shadow: false }));
+        S.facade.push(F.box({ w: 0.25, d: 25.1, h: 0.5 }, { mat: "castAl", at: [s * 20.45, 0, z + M.h - 0.5], tag: "facade", info: "facade", edges: false, shadow: false }));
+        for (const x of [-16, -8, 0, 8, 16]) S.facade.push(F.box({ w: 0.18, d: 0.22, h: M.h - 0.5 }, { mat: "castAl", at: [x, s * 12.45, z], tag: "facade", info: "facade", edges: false, shadow: false }));
+        for (const y of [-8, 0, 8]) S.facade.push(F.box({ w: 0.22, d: 0.18, h: M.h - 0.5 }, { mat: "castAl", at: [s * 20.45, y, z], tag: "facade", info: "facade", edges: false, shadow: false }));
+      }
+      st.push(S);
+    }
+    // roof
+    const roof = [
+      F.plate({ w: 40.9, d: 24.9, h: 1, holes: [{ x: 0, y: 0, w: 40.2, d: 24.2 }] }, { mat: "concrete", at: [0, 0, M.height], tag: "roof", info: "plant" }),
+      F.box({ w: 9, d: 9, h: 3.4, r: 0.3 }, { mat: "castAl", at: [0, 0, M.height], tag: "roof", info: "plant" }),
+      F.box({ w: 8, d: 5, h: 2.4, r: 0.3 }, { mat: "castAl", at: [-12, 5, M.height], tag: "roof", info: "plant" }),
+      F.box({ w: 6, d: 6, h: 2, r: 0.3 }, { mat: "castAl", at: [12, -4, M.height], tag: "roof", info: "plant" }),
+    ];
+    for (let i = 0; i < 6; i++) roof.push(F.cyl({ r: 0.9, h: 0.5, n: 16 }, { mat: "darkSteel", at: [-14.5 + (i % 3) * 2.4, 3.8 + Math.floor(i / 3) * 2.4, M.height + 2.4], tag: "roof", info: "plant", edges: false }));
+    // lifts and risers in the core
+    const cars = [-1.7, 1.7].map((x) => F.box({ w: 2.6, d: 3, h: 2.8, r: 0.2 }, { mat: "machined", at: [x, -1.4, 0], tag: "lift", info: "lift" }));
+    const risers = [F.cyl({ r: 0.3, h: M.height, n: 10 }, { color: BLUE, at: [-2.6, 2.6, 0], tag: "lift", info: "riser", edges: false }), F.cyl({ r: 0.45, h: M.height, n: 10 }, { mat: "castAl", at: [2.4, 2.6, 0], tag: "lift", info: "riser", edges: false })];
+
+    // ---------- flows: where the forces go ----------
+    for (const [x, y] of [[-20, -12], [-4, -12], [12, -12], [20, 4]]) F.flow([[x, y, M.height], [x, y, 0], [x, y, -2.3 - M.pileLen]], { color: AMBER, count: 12, speed: 0.12, r: 0.55, set: "gravity" });
+    F.flow([[-16, -8, 40.3], [-16, -11, 39.5], [-19, -12, 39.4], [-20, -12, 36], [-20, -12, 20]], { color: AMBER, count: 6, speed: 0.35, r: 0.5, set: "floor" });
+    F.flow([[-8, -9, 40.3], [-8, -11.4, 39.5], [-5, -12, 39.4], [-4, -12, 36], [-4, -12, 20]], { color: AMBER, count: 6, speed: 0.35, r: 0.5, set: "floor" });
+    for (const z of [70, 52, 34, 16]) F.flow([[-42, -3, z], [-21, -3, z], [-4.2, -3, z]], { color: BLUE, count: 6, speed: 0.3, r: 0.55, set: "wind" });
+    F.flow([[-3.8, -3.8, 76], [-3.8, -3.8, 0], [-3.8, -3.8, -3]], { color: BLUE, count: 10, speed: 0.15, r: 0.6, set: "wind" });
+
+    // ---------- what each part is ----------
+    F.describe({
+      slab: { name: "Floor slab", role: "The floor that people and furniture stand on. It spreads their weight to the beams below it.", fact: M.storeys + " floors, each " + M.h + " m above the last." },
+      beam: { name: "Beam", role: "Carries the slab and passes the load sideways to the columns." },
+      column: { name: "Column", role: "Carries the beams down. Each column also carries every column above it, so the load grows toward the ground.", fact: M.columns.length + " columns on an 8 m grid." },
+      core: { name: "Concrete core", role: "A stiff concrete tube around the lifts. It stops the tower from swaying in wind, and it holds the lifts, stairs and pipes." },
+      lift: { name: "Lift car", role: "Moves people up and down inside the core." },
+      riser: { name: "Services riser", role: "Vertical pipes and ducts that take water, air and power to every floor." },
+      facade: { name: "Facade", role: "The glass skin. It keeps the weather out and hangs from the floor edges. It does not hold the building up." },
+      plant: { name: "Roof plant", role: "Machines on the roof: the lift motors, cooling units and fans." },
+      mat: { name: "Mat foundation", role: "A thick concrete slab under the whole tower. It ties the column bases together and spreads their load across the piles." },
+      pile: { name: "Pile", role: "A concrete shaft in the ground. It carries the load through soft soil down to firm ground.", fact: M.grid.length + " piles, each " + M.pileLen + " m long." },
+      firm: { name: "Firm ground", role: "Dense soil or rock that can carry the weight of the tower." },
+    });
+    const mid = st[10];
+    F.label("facade", { set: "tower", on: st[14].facade[0] }); F.label("plant", { set: "tower", on: roof[1] });
+    F.label("slab", { set: "open", on: st[15].slab[0] }); F.label("column", { set: "open", on: st[8].col[0] }); F.label("core", { set: "open", on: st[12].core[0] }); F.label("plant", { set: "open", on: roof[1] });
+    F.label("beam", { set: "frame", on: mid.beam[0] }); F.label("column", { set: "frame", on: st[6].col[0] }); F.label("core", { set: "frame", on: st[14].core[0] });
+    F.label("core", { set: "core", on: st[15].core[0] }); F.label("lift", { set: "core", on: cars[0] }); F.label("riser", { set: "core", on: [-2.6, 2.6, 30] });
+    F.label("mat", { set: "found" }); F.label("pile", { set: "found", on: piles[0] }); F.label("firm", { set: "found" }); F.label("column", { set: "found", on: st[0].col[0] });
+
+    // ---------- running ----------
+    const tri = (t) => { const u = t % 2; return u < 1 ? u : 2 - u; };
+    F.onFrame((dt, t) => {
+      const top = Math.max(1, state.built) - 1;
+      const f = [tri(t * 0.045), tri(t * 0.06 + 0.7)].map((u) => Math.round(Math.min(1, Math.max(0, u * 1.2 - 0.1)) * top * 20) / 20);
+      cars.forEach((c, i) => (c.position.z = f[i] * M.h + 0.35));
+      F.readout(state.built + " of " + M.storeys + " storeys · " + state.built * M.h + " m · lifts at floors " + Math.round(f[0]) + " and " + Math.round(f[1]));
+    });
+
+    // ---------- stages ----------
+    const box = (a, b) => new THREE.Box3(new THREE.Vector3(...a), new THREE.Vector3(...b));
+    const above = box([-22, -14, 0], [22, 14, 86]);
+    const STAGES = [
+      { name: "Tower", set: "tower", a: { slab: 1, beam: 1, col: 1, core: 1, facade: 1, roof: 1, lift: 1, soil: 0, found: 0 }, hint: "A 20-storey office tower. The glass is only a skin.", view: [above, 36, 20, 1.05] },
+      { name: "See-through", set: "open", a: { slab: 1, beam: 1, col: 1, core: 1, facade: 0.06, roof: 1, lift: 1, soil: 0, found: 0 }, hint: "Behind the glass: floors on beams, beams on columns, and a concrete core in the middle.", view: [above, 36, 20, 1.05] },
+      { name: "Frame", set: "frame", a: { slab: 0.07, beam: 1, col: 1, core: 1, facade: 0, roof: 0.1, lift: 1, soil: 0, found: 0 }, hint: "The skeleton. Columns and beams carry weight. The core resists wind.", view: [above, 30, 16, 1.05] },
+      { name: "Core and lifts", set: "core", a: { slab: 0.04, beam: 0.05, col: 0.08, core: 0.22, facade: 0, roof: 0.1, lift: 1, soil: 0, found: 0 }, hint: "The core is a hollow concrete tube. The lifts and service pipes run inside it.", view: [box([-10, -8, 0], [10, 8, 86]), 30, 16, 1.02] },
+      { name: "Foundation", set: "found", a: { slab: 1, beam: 1, col: 1, core: 1, facade: 0.06, roof: 1, lift: 1, soil: 0.13, found: 1 }, hint: "Under the ground: a concrete mat on piles that reach firm ground.", view: [box([-30, -22, -24], [30, 22, 16]), 34, 14, 1.0] },
+    ];
+    function apply() {
+      const A = STAGES[state.stage].a;
+      st.forEach((S, k) => { const m = k < state.built ? 1 : 0; for (const key of ["slab", "beam", "col", "core", "facade"]) F.ghost(S[key], A[key] * m); });
+      risers.forEach((r) => (r.scale.z = state.built / M.storeys)); F.ghost(roof, state.built === M.storeys ? A.roof : 0); F.ghost("lift", A.lift); F.ghost(soil, A.soil); F.ghost(firm, A.soil ? 0.6 : 0); F.ghost("found", A.found);
+      F.shadow(A.soil ? 0 : 1);
+    }
+
+    // ---------- controls ----------
+    const bar = document.createElement("div"); bar.className = "mech-controls";
+    bar.innerHTML = STAGES.map((s, i) => `<button data-stage="${i}">${i + 1} ${s.name}</button>`).join("") +
+      `<span class="sp"></span><span>Build</span><input type="range" min="1" max="${M.storeys}" step="1" value="${state.built}" aria-label="Number of storeys built"><span class="sp"></span><button data-t="labels" aria-pressed="${state.labels}">Labels</button><button data-t="gravity">Weight path</button><button data-t="wind">Wind path</button><button data-t="lesson">Lesson: how the weight gets down</button><button data-t="quiz">Quiz</button><button data-t="style">${REAL ? "Line view" : "Real view"}</button>`;
+    F.mount.querySelector(".mech-stage").after(bar);
+    const hintEl = F.mount.querySelector(".mech-hint"), slider = bar.querySelector("input");
+    const flowBtn = () => bar.querySelectorAll("[data-t=gravity],[data-t=wind]").forEach((b) => b.setAttribute("aria-pressed", state.flow === b.dataset.t));
+    function setStage(i, quiet, keep) { if (!quiet) F.touch(); state.stage = ((i % STAGES.length) + STAGES.length) % STAGES.length; const S = STAGES[state.stage]; apply(); if (!keep) { state.flow = null; } F.flows(state.flow); flowBtn(); F.labels(state.labels ? S.set : null); F.focus(S.view[0], { azimuth: S.view[1], elevation: S.view[2], pad: S.view[3] }); hintEl.textContent = S.hint; bar.querySelectorAll("[data-stage]").forEach((b, k) => b.setAttribute("aria-pressed", k === state.stage)); }
+    const show = (stage, flow, set) => () => { state.flow = flow; setStage(stage, true, true); if (set) F.labels(set); };
+    const lesson = F.lesson([
+      { title: "1. The load starts on the floor", text: "People, desks and the slab's own weight press down on each floor slab.", go: show(1, null) },
+      { title: "2. Slab to beam to column", text: "The slab rests on beams. Each beam passes its share sideways to the columns at its ends.", go: () => { show(2, "floor", "frame")(); F.focus(box([-22, -14, 30], [0, 0, 44]), { azimuth: 30, elevation: 24, pad: 1.0 }); } },
+      { title: "3. Columns stack the load", text: "Each column carries its own floor and every floor above it. The columns at the bottom carry the most.", go: show(2, "gravity") },
+      { title: "4. The core takes the wind", text: "Wind pushes on the glass. The floors pass that push to the core, and the core carries it down like a mast.", go: show(3, "wind") },
+      { title: "5. Into the ground", text: "The mat spreads the column loads across the piles. The piles carry them through soft soil to firm ground.", go: show(4, "gravity") },
+    ], { onClose: () => setStage(0, true) });
+    const quiz = F.quiz([
+      { ask: "Click a part that carries weight straight down, floor after floor.", key: "column", also: ["pile"] },
+      { ask: "Click the part that stops the tower from swaying.", key: "core" },
+      { ask: "Click a part that passes floor loads sideways to the columns.", key: "beam" },
+      { ask: "Click the part that carries the tower's weight down to firm ground.", key: "pile" },
+    ]);
+    bar.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; F.touch(); const t = b.dataset.t;
+      if (b.dataset.stage) setStage(+b.dataset.stage); else if (t === "style") { state.style = REAL ? "line" : "real"; start(); } else if (t === "labels") { state.labels = !state.labels; b.setAttribute("aria-pressed", state.labels); setStage(state.stage, true, true); }
+      else if (t === "gravity" || t === "wind") { state.flow = state.flow === t ? null : t; setStage(state.flow === "wind" ? 3 : state.flow ? 2 : state.stage, true, true); }
+      else if (t === "lesson") lesson.open(0); else if (t === "quiz") { setStage(4); quiz.start(); } });
+    slider.addEventListener("input", () => { F.touch(); state.built = +slider.value; apply(); });
+    F.stage.addEventListener("keydown", (e) => { if (e.key >= "1" && e.key <= "5") setStage(+e.key - 1); });
+    F.onPress = () => setStage(state.stage + 1);
+    F.tour(() => setStage(state.stage + 1, true));
+
+    mech.card("#fig", {
+      fig: "Fig 3", title: "Structure of an office tower",
+      keys: [{ mark: "lit", label: "Click a part to learn what it does" }, { mark: "mid", label: "Keys 1 to 5 change the view. The Build slider adds storeys. Drag to orbit." }],
+      caption: "A generic steel-frame tower with a concrete core, not a real building. The sizes are typical values chosen for the model: " + M.storeys + " storeys of " + M.h + " m, columns on an 8 m grid, and a mat foundation on " + M.grid.length + " piles. Orange dots show the path of weight. Blue dots show the path of wind load. The dots show direction only, not the size of the force.",
+    });
+    window.fig = F; window.setStage = setStage; window.state = state;
+    setStage(state.stage, true); F.fit(true);
+  }
+  start();
+})();
+
+</script>
+</body>
+</html>
