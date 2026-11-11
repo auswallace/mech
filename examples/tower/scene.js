@@ -2,7 +2,6 @@
    The sizes are typical values chosen for the model: 20 storeys of 4 m, an 8 m column grid,
    a concrete core for the lifts, a steel frame, and a mat foundation on 24 piles. */
 (function () {
-  const THEME = document.documentElement.dataset.theme || "dark";
   // ---------- the model ----------
   const M = { storeys: 20, h: 4, xs: [-20, -12, -4, 4, 12, 20], ys: [-12, -4, 4, 12], core: 8, pileLen: 16 };
   M.height = M.storeys * M.h;
@@ -14,7 +13,7 @@
 
   function start() {
     if (F) F.dispose();
-    F = new mech.Figure("#fig", { theme: THEME, style: state.style, width: 760, height: 560, azimuth: 36, elevation: 20 });
+    F = new mech.Figure("#fig", { theme: document.documentElement.dataset.theme || "dark", style: state.style, width: 760, height: 560, azimuth: 36, elevation: 20 });
     const REAL = state.style === "real", AMBER = 0xff8a2a, BLUE = 0x4aa8ff;
 
     // ---------- below ground ----------
@@ -148,5 +147,6 @@
     window.fig = F; window.setStage = setStage; window.state = state;
     setStage(state.stage, true); F.fit(true);
   }
+  addEventListener("mech-theme", start);   // the theme button in the card rebuilds the figure
   start();
 })();

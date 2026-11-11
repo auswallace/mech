@@ -13,3 +13,4 @@ One line per mistake found in review. Read this before you build. Add to it when
 - A pattern in the build script that looks for `title:` matches lesson step titles first. Anchor it to the card.
 - Tall figures get cut by a fixed-ratio contact sheet. Check the full image for the stage that looks cropped.
 - Per-storey parts that should stop at the built height (pipes, shafts) need to scale with the build control.
+- A theme read once at the top of the scene can't change later. Read it inside `start()`.

@@ -10,7 +10,8 @@
 body{margin:0;background:var(--m-paper);color:var(--m-ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}
 .mech{max-width:680px;margin:28px auto;background:var(--m-card);border:1px solid var(--m-rule);border-radius:12px;padding:14px 16px 12px}
 .mech-head,.mech-foot{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--m-muted)}
-.mech-head b{color:var(--m-ink);font-weight:500}
+.mech-head b{color:var(--m-ink);font-weight:500;margin-left:auto}
+.mech-theme{font:inherit;font-size:11px;color:var(--m-muted);background:transparent;border:1px solid var(--m-rule);border-radius:6px;padding:2px 8px;margin-left:10px;cursor:pointer}
 .mech-stage{outline:none;cursor:grab;margin:6px 0;border-radius:8px}
 .mech-stage:active{cursor:grabbing}.mech-stage:focus-visible{box-shadow:0 0 0 2px var(--m-muted)}
 .mech-stage canvas{display:block;width:100%;height:auto}
@@ -565,7 +566,11 @@ body{margin:0;background:var(--m-paper);color:var(--m-ink);font:14px/1.5 -apple-
   // ---------- card ----------
   function card(mount, { fig = "Fig 1", title = "", keys = [], caption = "" }) {
     const m = typeof mount === "string" ? document.querySelector(mount) : mount;
-    const head = document.createElement("div"); head.className = "mech-head"; head.innerHTML = `<span>${fig}</span><b>${title}</b>`;
+    const head = document.createElement("div"); head.className = "mech-head";
+    const dark = (document.documentElement.dataset.theme || "dark") === "dark";
+    head.innerHTML = `<span>${fig}</span><b>${title}</b><button class="mech-theme" aria-label="Switch to ${dark ? "light" : "dark"} theme">${dark ? "Light" : "Dark"}</button>`;
+    // The theme button flips data-theme on <html>, remembers the choice for this reader, and tells the scene to rebuild.
+    head.querySelector("button").addEventListener("click", () => { const next = dark ? "light" : "dark"; document.documentElement.dataset.theme = next; try { localStorage.setItem("mech-theme", next); } catch (e) {} global.dispatchEvent(new Event("mech-theme")); });
     const k = document.createElement("div"); k.className = "mech-keys"; k.innerHTML = keys.map((x) => `<span class="k-${x.mark}">${x.label}</span>`).join("");
     const c = document.createElement("p"); c.className = "mech-cap"; c.textContent = caption;
     m.prepend(head); m.append(k, c);
@@ -577,7 +582,8 @@ body{margin:0;background:var(--m-paper);color:var(--m-ink);font:14px/1.5 -apple-
 body{margin:0;background:var(--m-paper);color:var(--m-ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}
 .mech{max-width:680px;margin:28px auto;background:var(--m-card);border:1px solid var(--m-rule);border-radius:12px;padding:14px 16px 12px}
 .mech-head,.mech-foot{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--m-muted)}
-.mech-head b{color:var(--m-ink);font-weight:500}
+.mech-head b{color:var(--m-ink);font-weight:500;margin-left:auto}
+.mech-theme{font:inherit;font-size:11px;color:var(--m-muted);background:transparent;border:1px solid var(--m-rule);border-radius:6px;padding:2px 8px;margin-left:10px;cursor:pointer}
 .mech-stage{outline:none;cursor:grab;margin:6px 0;border-radius:8px}
 .mech-stage:active{cursor:grabbing}.mech-stage:focus-visible{box-shadow:0 0 0 2px var(--m-muted)}
 .mech-stage canvas{display:block;width:100%;height:auto}
@@ -604,6 +610,7 @@ body{margin:0;background:var(--m-paper);color:var(--m-ink);font:14px/1.5 -apple-
 .mech-lesson button{font:inherit;font-size:12px;color:var(--m-ink);background:transparent;border:1px solid var(--m-rule);border-radius:7px;padding:4px 10px;cursor:pointer}
 .mech-lesson p{margin:6px 0 0;color:var(--m-muted)}`;
 
+  try { const t = localStorage.getItem("mech-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}
   global.mech = { Figure, card, CSS, THEMES, MATS, boxGeo, cylGeo, tubeGeo, profileGeo, latheGeo, torusGeo, voluteGeo, superSection, sweep, loftGeo, plateGeo, roundedRect };
 })(window);
 
@@ -614,7 +621,6 @@ body{margin:0;background:var(--m-paper);color:var(--m-ink);font:14px/1.5 -apple-
    twin-turbo V8: bore x stroke 86 x 86 mm, cylinders 1-4 on the right bank and 5-8 on the left,
    firing order 1-3-7-2-6-5-4-8, turbochargers inside the V, cylinders 2, 3, 5 and 8 switched off in 4-cylinder mode. */
 (function () {
-  const THEME = document.documentElement.dataset.theme || "dark";
   const D = Math.PI / 180;
 
   // ---------- the model: every number on screen comes from here ----------
@@ -637,7 +643,7 @@ body{margin:0;background:var(--m-paper);color:var(--m-ink);font:14px/1.5 -apple-
 
   function start() {
     if (F) F.dispose();
-    F = new mech.Figure("#fig", { theme: THEME, style: state.style, width: 760, height: 480, azimuth: 38, elevation: 24 });
+    F = new mech.Figure("#fig", { theme: document.documentElement.dataset.theme || "dark", style: state.style, width: 760, height: 480, azimuth: 38, elevation: 24 });
     const REAL = state.style === "real";
 
     // ---------- body shell (original design) ----------
@@ -953,6 +959,7 @@ body{margin:0;background:var(--m-paper);color:var(--m-ink);font:14px/1.5 -apple-
     setStage(state.stage, true);
     F.fit(true);
   }
+  addEventListener("mech-theme", start);   // the theme button in the card rebuilds the figure
   start();
 })();
 

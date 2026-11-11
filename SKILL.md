@@ -77,6 +77,7 @@ When a review finds a mistake that could happen again, add one line to `referenc
 - **Ghost, do not delete.** Fade covers with `F.ghost(tag, 0.06)`. A closed shell hides what is inside it, so ghost it or cut an opening.
 - **Flow shows direction, not speed.** Say so in the caption.
 - **Simplifications are stated.** Slow motion, simplified timing, made-up values and generic shells all go in the caption.
+- **Both themes in one page.** The card has a Light/Dark button. Read the theme inside `start()` and keep the `mech-theme` listener from the template, so the button rebuilds the figure.
 - **Rest state.** `F.tour` steps through the stages when nobody touches the figure. It stops during a lesson, a quiz or a selection.
 
 ## Kit in one screen

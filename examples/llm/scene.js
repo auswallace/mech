@@ -4,7 +4,6 @@
    a vocabulary of 50,257 tokens, a context of 1,024 tokens and about 124 million parameters.
    The attention weights and output probabilities are made up for illustration. */
 (function () {
-  const THEME = document.documentElement.dataset.theme || "dark";
   // ---------- the model ----------
   const M = {
     layers: 12, heads: 12, width: 768, vocab: 50257, context: 1024, params: "124 million",
@@ -21,7 +20,7 @@
 
   function start() {
     if (F) F.dispose();
-    F = new mech.Figure("#fig", { theme: THEME, style: state.style, width: 760, height: 520, azimuth: 34, elevation: 20 });
+    F = new mech.Figure("#fig", { theme: document.documentElement.dataset.theme || "dark", style: state.style, width: 760, height: 520, azimuth: 34, elevation: 20 });
     const REAL = state.style === "real", last = M.words.length - 1, AMBER = 0xffa033, BLUE = 0x4aa8ff;
 
     // ---------- bottom: text, tokens, embeddings ----------
@@ -154,5 +153,6 @@
     window.fig = F; window.setStage = setStage; window.state = state;
     setStage(state.stage, true); F.fit(true);
   }
+  addEventListener("mech-theme", start);   // the theme button in the card rebuilds the figure
   start();
 })();

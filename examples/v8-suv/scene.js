@@ -3,7 +3,6 @@
    twin-turbo V8: bore x stroke 86 x 86 mm, cylinders 1-4 on the right bank and 5-8 on the left,
    firing order 1-3-7-2-6-5-4-8, turbochargers inside the V, cylinders 2, 3, 5 and 8 switched off in 4-cylinder mode. */
 (function () {
-  const THEME = document.documentElement.dataset.theme || "dark";
   const D = Math.PI / 180;
 
   // ---------- the model: every number on screen comes from here ----------
@@ -26,7 +25,7 @@
 
   function start() {
     if (F) F.dispose();
-    F = new mech.Figure("#fig", { theme: THEME, style: state.style, width: 760, height: 480, azimuth: 38, elevation: 24 });
+    F = new mech.Figure("#fig", { theme: document.documentElement.dataset.theme || "dark", style: state.style, width: 760, height: 480, azimuth: 38, elevation: 24 });
     const REAL = state.style === "real";
 
     // ---------- body shell (original design) ----------
@@ -342,5 +341,6 @@
     setStage(state.stage, true);
     F.fit(true);
   }
+  addEventListener("mech-theme", start);   // the theme button in the card rebuilds the figure
   start();
 })();

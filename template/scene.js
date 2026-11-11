@@ -1,7 +1,6 @@
 /* Template scene. Copy this file to examples/<name>/scene.js and fill in each section.
    State the unit, the axes, and where the facts come from, here at the top. */
 (function () {
-  const THEME = document.documentElement.dataset.theme || "dark";
   // ---------- 1. the model: every number on screen comes from here ----------
   const M = { /* verified facts and sizes */ };
   const state = { stage: 0, labels: true, style: location.hash === "#line" ? "line" : "real" };
@@ -9,7 +8,7 @@
 
   function start() {
     if (F) F.dispose();
-    F = new mech.Figure("#fig", { theme: THEME, style: state.style, width: 760, height: 480, azimuth: 38, elevation: 24 });
+    F = new mech.Figure("#fig", { theme: document.documentElement.dataset.theme || "dark", style: state.style, width: 760, height: 480, azimuth: 38, elevation: 24 });
     const REAL = state.style === "real";
 
     // ---------- 2. parts: mechanism first, covers second, shell last. Give parts a tag and an info key. ----------
@@ -55,5 +54,6 @@
     window.fig = F; window.setStage = setStage; window.state = state;
     setStage(state.stage, true); F.fit(true);
   }
+  addEventListener("mech-theme", start);   // the theme button in the card rebuilds the figure
   start();
 })();
