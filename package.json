@@ -1,0 +1,15 @@
+{
+  "name": "mech",
+  "version": "0.1.0",
+  "description": "Interactive isometric figures that explain how a machine works",
+  "scripts": {
+    "build": "node scripts/build.mjs examples/v8-suv && node scripts/build.mjs examples/v8-suv --light"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "private": true,
+  "devDependencies": {
+    "three": "^0.128.0"
+  }
+}
