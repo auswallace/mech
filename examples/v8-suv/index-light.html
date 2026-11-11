@@ -31,12 +31,16 @@ body{margin:0;background:var(--m-paper);color:var(--m-ink);font:14px/1.5 -apple-
 .mech-leaders path{fill:none;stroke:var(--m-muted);stroke-width:1}.mech-leaders circle{fill:var(--m-ink)}
 .mech-label{position:absolute;transform:translateY(-50%);font-size:11.5px;line-height:1.2;white-space:nowrap;color:var(--m-ink);background:var(--m-card);border:1px solid var(--m-rule);border-radius:5px;padding:2px 6px}
 .mech-label.pin{transform:translate(-50%,-50%);background:transparent;border:0;font-weight:500;text-shadow:0 0 4px var(--m-card),0 0 4px var(--m-card)}
+.mech-label.pin.box{background:var(--m-card);border:1px solid var(--m-rule);font-size:12.5px;padding:3px 8px;text-shadow:none}
 .mech-panel{position:absolute;left:50%;transform:translateX(-50%);bottom:8px;width:max-content;max-width:min(340px,80%);background:var(--m-card);border:1px solid var(--m-rule);border-radius:9px;padding:9px 11px;font-size:12.5px;line-height:1.45;color:var(--m-muted)}
 .mech-panel b{display:block;color:var(--m-ink);font-weight:600;font-size:13px;margin-bottom:2px}.mech-panel span{display:block}.mech-panel em{display:block;font-style:normal;color:var(--m-ink);margin-top:4px}
 .mech-lesson{border:1px solid var(--m-rule);border-radius:9px;padding:9px 11px;margin:0 0 8px;font-size:13px}
 .mech-lesson .row{display:flex;align-items:center;gap:8px}.mech-lesson b{font-weight:600}.mech-lesson .n{color:var(--m-muted);font-size:12px;margin-right:auto}
 .mech-lesson button{font:inherit;font-size:12px;color:var(--m-ink);background:transparent;border:1px solid var(--m-rule);border-radius:7px;padding:4px 10px;cursor:pointer}
-.mech-lesson p{margin:6px 0 0;color:var(--m-muted)}</style>
+.mech-lesson p{margin:6px 0 0;color:var(--m-muted)}
+.mech-sources{border-top:1px solid var(--m-rule);margin-top:10px;padding-top:8px;font-size:12px;color:var(--m-muted)}
+.mech-sources b{color:var(--m-ink);font-weight:600}.mech-sources ul{margin:6px 0 0;padding-left:18px}.mech-sources li{margin:3px 0}
+.mech-sources i{font-style:normal;border:1px solid var(--m-rule);border-radius:4px;padding:0 5px;font-size:11px;margin:0 4px}.mech-sources a{color:var(--m-ink)}</style>
 </head>
 <body>
 <div id="fig"></div>
@@ -120,6 +124,46 @@ body{margin:0;background:var(--m-paper);color:var(--m-ink);font:14px/1.5 -apple-
     return g;
   }
 
+  // Toothed wheel for a chain or a gear train. Pitch radius = pitch / (2 sin(pi / teeth)). A roller sits in the gap at angle 0.
+  function gearGeo({ teeth, pitch, thick = 2, hole = 0, axis = "z", depth = 0.3 }) {
+    const R = pitch / (2 * Math.sin(Math.PI / teeth)), rr = R - pitch * depth, rt = R + pitch * depth * 0.9, da = (Math.PI * 2) / teeth, s = new T.Shape();
+    for (let i = 0; i < teeth; i++) for (const [f, r] of [[0.24, rr], [0.41, rt], [0.59, rt], [0.76, rr]]) { const a = (i + f) * da, x = r * Math.cos(a), y = r * Math.sin(a); i || f > 0.3 ? s.lineTo(x, y) : s.moveTo(x, y); }
+    s.closePath();
+    if (hole > 0) { const h = new T.Path(); h.absarc(0, 0, hole, 0, Math.PI * 2, true); s.holes.push(h); }
+    const g = new T.ExtrudeGeometry(s, { depth: thick, bevelEnabled: false, curveSegments: 24 }); g.translate(0, 0, -thick / 2);
+    if (axis === "y") g.rotateX(Math.PI / 2); else if (axis === "x") g.rotateY(Math.PI / 2);
+    g.userData.pitchRadius = R; return g;
+  }
+  const pitchRadius = (teeth, pitch) => pitch / (2 * Math.sin(Math.PI / teeth));
+  // Path of a chain, belt or cable round a closed loop of wheels, in the x-z plane.
+  // wheels: [{ c: [x, z], r, s: +1 | -1, y }]. s is the turning sense seen with x to the right and z up: +1 anticlockwise, -1 clockwise.
+  // Returns { length, at(distance) -> { x, y, z, ang }, arcs: [length on each wheel] }.
+  function wrapPath(wheels) {
+    const n = wheels.length, tan = [], seg = [];
+    for (let i = 0; i < n; i++) {
+      const A = wheels[i], B = wheels[(i + 1) % n], D = [B.c[0] - A.c[0], B.c[1] - A.c[1]], d = Math.hypot(D[0], D[1]), k = B.r * B.s - A.r * A.s;
+      const pd = Math.atan2(D[1], D[0]), ac = Math.acos(Math.max(-1, Math.min(1, -k / d)));
+      for (const sg of [1, -1]) { const q = [Math.cos(pd + sg * ac), Math.sin(pd + sg * ac)], u = [-q[1], q[0]], L = D[0] * u[0] + D[1] * u[1]; if (L > 0) { tan.push({ a: [A.c[0] + A.r * A.s * q[0], A.c[1] + A.r * A.s * q[1]], b: [B.c[0] + B.r * B.s * q[0], B.c[1] + B.r * B.s * q[1]], L, u }); break; } }
+    }
+    let length = 0; const arcs = [];
+    for (let i = 0; i < n; i++) {
+      const t = tan[i], j = (i + 1) % n, W = wheels[j], A = wheels[i];
+      seg.push({ line: true, from: length, len: t.L, t, ya: A.y || 0, yb: W.y || 0 }); length += t.L;
+      const a0 = Math.atan2(t.b[1] - W.c[1], t.b[0] - W.c[0]), o = tan[j].a, a1 = Math.atan2(o[1] - W.c[1], o[0] - W.c[0]);
+      const sweep = (((a1 - a0) * W.s) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+      seg.push({ from: length, len: sweep * W.r, a0, sweep, W }); arcs[j] = sweep * W.r; length += sweep * W.r;
+    }
+    const at = (dist) => {
+      dist = ((dist % length) + length) % length; let g = seg[seg.length - 1];
+      for (const q of seg) if (dist < q.from + q.len) { g = q; break; }
+      const f = g.len ? (dist - g.from) / g.len : 0;
+      if (g.line) return { x: g.t.a[0] + g.t.u[0] * g.len * f, z: g.t.a[1] + g.t.u[1] * g.len * f, y: g.ya + (g.yb - g.ya) * f, ang: Math.atan2(g.t.u[1], g.t.u[0]) };
+      const a = g.a0 + g.W.s * g.sweep * f; return { x: g.W.c[0] + g.W.r * Math.cos(a), z: g.W.c[1] + g.W.r * Math.sin(a), y: g.W.y || 0, ang: a + g.W.s * Math.PI / 2 };
+    };
+    return { length, at, arcs };
+  }
+  // Point on a hop from a to b: t from 0 to 1, lifted by `lift` in the middle. For messages that travel between stations.
+  const hop = (a, b, t, lift = 0) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t + lift * Math.sin(Math.PI * t)];
   // Flat plate standing on z = 0 with rectangular holes: { w, d, h, holes: [{ x, y, w, d }] }.
   function plateGeo({ w, d, h, holes = [] }) {
     const s = new T.Shape(); s.moveTo(-w / 2, -d / 2); s.lineTo(w / 2, -d / 2); s.lineTo(w / 2, d / 2); s.lineTo(-w / 2, d / 2); s.closePath();
@@ -195,6 +239,7 @@ body{margin:0;background:var(--m-paper);color:var(--m-ink);font:14px/1.5 -apple-
       this.gradient = gradientMap();
       this.running = false; this.visible = false; this.last = 0; this.time = 0;
       this.reduced = global.matchMedia && global.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      global.mech.current = this;
       this.#dom(hint, readout);
       this.#scene();
       this.#input();
@@ -448,11 +493,12 @@ body{margin:0;background:var(--m-paper);color:var(--m-ink);font:14px/1.5 -apple-
     }
     say(html) { this.panel.innerHTML = html; this.panel.hidden = !html; }
     // label(key, { text, on, set, pin }): a pointer to a part. `on` is an object or a world point. Show a set with labels(set).
-    label(key, { text, on, set = "all", pin = false } = {}) {
-      const el = document.createElement("div"); el.className = "mech-label" + (pin ? " pin" : ""); el.textContent = text || (this.infoDict[key] ? this.infoDict[key].name : key); el.hidden = true; this.over.appendChild(el);
+    label(key, { text, on, set = "all", pin = false, offset, box = false } = {}) {
+      const el = document.createElement("div"); el.className = "mech-label" + (pin ? " pin" : "") + (box ? " box" : ""); el.textContent = text || (this.infoDict[key] ? this.infoDict[key].name : key); el.hidden = true; this.over.appendChild(el);
       const obj = Array.isArray(on) ? null : on || this.find(key); let local = null, probe = null;
-      if (obj) { this.root.updateMatrixWorld(true); const c = new T.Box3().setFromObject(obj).getCenter(new T.Vector3()); local = obj.worldToLocal(c); obj.traverse((m) => { if (!probe && m.isMesh) probe = m; }); }
-      this.labelList.push({ key, el, obj, local, probe, world: Array.isArray(on) ? new T.Vector3(...on) : null, set, pin });
+      if (obj) { this.root.updateMatrixWorld(true); const c = new T.Box3().setFromObject(obj).getCenter(new T.Vector3()); if (offset) c.add(new T.Vector3(...offset)); local = obj.worldToLocal(c); obj.traverse((m) => { if (!probe && m.isMesh) probe = m; }); }
+      const L = { key, el, obj, local, probe, world: Array.isArray(on) ? new T.Vector3(...on) : null, set, pin, text(t) { el.textContent = t; L.w = 0; } };
+      this.labelList.push(L); return L;
     }
     labels(set) { this.labelSet = set || null; this.run(); }
     // flow(points, opts): dots that move along a path. Show a set with flows(set).
@@ -486,6 +532,29 @@ body{margin:0;background:var(--m-paper);color:var(--m-ink);font:14px/1.5 -apple-
       }; ask(); } };
     }
     plate(o, opts) { return this.add(plateGeo(o), opts); }
+    gear(o, opts) { return this.add(gearGeo(o), Object.assign({ edges: 50 }, opts)); }
+    #ends(mesh) { const up = new T.Vector3(0, 0, 1), d = new T.Vector3(); mesh.setEnds = (a, b) => { d.set(b[0] - a[0], b[1] - a[1], b[2] - a[2]); const len = d.length() || 1e-6; mesh.position.set(a[0], a[1], a[2]); mesh.quaternion.setFromUnitVectors(up, d.divideScalar(len)); mesh.scale.z = len; return mesh; }; return mesh; }
+    // link(a, b): a bar between two points. Call mesh.setEnds(a, b) each frame when the points move.
+    link(a, b, { w = 3, d = 3, r = 0.8 } = {}, opts) { return this.#ends(this.add(boxGeo({ w, d, h: 1, r }), opts)).setEnds(a, b); }
+    // spring(a, b): a coil between two points that stretches with them.
+    spring(a, b, { r = 3, turns = 8, wire = 0.5 } = {}, opts) {
+      const pts = []; for (let i = 0; i <= turns * 12; i++) { const t = i / (turns * 12), g = t * turns * Math.PI * 2; pts.push([r * Math.cos(g), r * Math.sin(g), t]); }
+      return this.#ends(this.add(new T.TubeGeometry(new T.CatmullRomCurve3(pts.map((p) => new T.Vector3(...p))), turns * 16, wire, 6, false), Object.assign({ edges: false }, opts))).setEnds(a, b);
+    }
+    // chain({ count, pitch, width }): links that follow a wrapPath. Call chain.place(path, phase) each frame.
+    chain({ count, pitch, width = 7, height = 8 }, opts = {}) {
+      const links = [];
+      for (let i = 0; i < count; i++) {
+        const g = boxGeo({ w: pitch * 1.02, d: i % 2 ? width : width * 0.6, h: height, r: height * 0.42 }); g.rotateX(Math.PI / 2); g.translate(pitch / 2, i % 2 ? width / 2 : width * 0.3, 0);
+        const m = this.add(g, Object.assign({ mat: i % 2 ? "steel" : "darkSteel", edges: false }, opts)); links.push(m);
+      }
+      return { links, count, pitch, place(path, phase = 0) { const step = path.length / count; for (let i = 0; i < count; i++) { const a = path.at((i + phase) * step), b = path.at((i + 1 + phase) * step); links[i].position.set(a.x, a.y, a.z); links[i].rotation.y = -Math.atan2(b.z - a.z, b.x - a.x); } } };
+    }
+    // ---- accuracy ----
+    // facts([{ id, claim, source, url, status }]): status is "sourced", "model" (derived), "assumed" (typical value) or "illustrative" (made up).
+    facts(list) { this.factList = (this.factList || []).concat(list); }
+    // check(name, ok, detail): a test that the model agrees with the facts. Failures show in audit().
+    check(name, ok, detail = "") { (this.checks = this.checks || []).push({ name, ok: !!ok, detail: String(detail) }); }
     #teach(dt) {
       // highlight the selected parts
       const sel = this.selected;
@@ -524,8 +593,21 @@ body{margin:0;background:var(--m-paper);color:var(--m-ink);font:14px/1.5 -apple-
       let tris = 0; const tags = {};
       const boxes = ms.map((m) => { const g = m.geometry; tris += (g.index ? g.index.count : g.attributes.position.count) / 3; const t = m.userData.tag || "untagged"; tags[t] = (tags[t] || 0) + 1; g.computeBoundingBox(); return g.boundingBox.clone().applyMatrix4(m.matrixWorld).expandByScalar(0.6); });
       const floating = [];
-      boxes.forEach((b, i) => { if (!boxes.some((c, j) => j !== i && b.intersectsBox(c))) { const c = b.getCenter(new T.Vector3()); floating.push((ms[i].userData.tag || "untagged") + " at " + [c.x, c.y, c.z].map((v) => Math.round(v)).join(",")); } });
-      return { parts: ms.length, triangles: Math.round(tris), tags, floating };
+      boxes.forEach((b, i) => { if (["flow", "packet"].includes(ms[i].userData.tag)) return; if (!boxes.some((c, j) => j !== i && b.intersectsBox(c))) { const c = b.getCenter(new T.Vector3()); floating.push((ms[i].userData.tag || "untagged") + " at " + [c.x, c.y, c.z].map((v) => Math.round(v)).join(",")); } });
+      // size of each tag, so a wrong unit or a part that lies the wrong way shows up as a number
+      const ext = {}; ms.forEach((m, i) => { const t = m.userData.tag || "untagged"; (ext[t] = ext[t] || new T.Box3()).union(boxes[i]); });
+      const extents = {}; for (const t in ext) { const z = ext[t].getSize(new T.Vector3()); extents[t] = [z.x, z.y, z.z].map((v) => Math.round(v)); }
+      // labels of the active set whose part is behind something else
+      const hiddenLabels = [], ray = new T.Raycaster(), v = new T.Vector3(), solid = ms.filter((m) => m.userData.alpha > 0.6 && m.userData.tag !== "flow");
+      for (const L of this.labelList) {
+        if (L.pin || !this.labelSet || (L.set !== this.labelSet && L.set !== "all") || (L.probe && L.probe.userData.alpha <= 0.3)) continue;
+        if (L.obj) L.obj.localToWorld(v.copy(L.local)); else v.copy(L.world);
+        const w = v.clone(), ndc = v.project(this.camera); ray.setFromCamera(new T.Vector2(ndc.x, ndc.y), this.camera);
+        const hit = ray.intersectObjects(solid, false)[0]; if (hit && this.infoOf(hit.object) !== L.key && hit.distance < ray.ray.origin.distanceTo(w) - 1) hiddenLabels.push(L.el.textContent + " (behind " + (this.infoOf(hit.object) || hit.object.userData.tag || "a part") + ")");
+      }
+      const F = this.factList || [], ids = new Set(F.map((f) => f.id));
+      const facts = { total: F.length, sourced: F.filter((f) => f.status === "sourced").length, noSource: F.filter((f) => f.status === "sourced" && !f.url).map((f) => f.id), unlinked: Object.keys(this.infoDict).filter((k) => this.infoDict[k].fact && !ids.has(this.infoDict[k].src)) };
+      return { parts: ms.length, triangles: Math.round(tris), tags, extents, floating, hiddenLabels, failedChecks: (this.checks || []).filter((c) => !c.ok).map((c) => c.name + (c.detail ? ": " + c.detail : "")), checks: (this.checks || []).length, facts };
     }
     readout(text) { if (this.readoutEl.textContent !== text) this.readoutEl.textContent = text; }
 
@@ -574,6 +656,14 @@ body{margin:0;background:var(--m-paper);color:var(--m-ink);font:14px/1.5 -apple-
     const k = document.createElement("div"); k.className = "mech-keys"; k.innerHTML = keys.map((x) => `<span class="k-${x.mark}">${x.label}</span>`).join("");
     const c = document.createElement("p"); c.className = "mech-cap"; c.textContent = caption;
     m.prepend(head); m.append(k, c);
+    const fig3d = global.mech.current, F = (fig3d && fig3d.factList) || [];
+    if (F.length) {
+      const b = document.createElement("button"); b.className = "mech-theme"; b.textContent = "Sources"; b.setAttribute("aria-expanded", "false"); head.append(b);
+      const box = document.createElement("div"); box.className = "mech-sources"; box.hidden = true;
+      const word = { sourced: "from the source", model: "worked out by the model", assumed: "typical value, assumed", illustrative: "made up for illustration" };
+      box.innerHTML = "<b>Where the facts come from</b><ul>" + F.map((f) => `<li>${f.claim} <i>${word[f.status] || f.status}</i>${f.url ? ` <a href="${f.url}" target="_blank" rel="noopener">${f.source || "source"}</a>` : f.source ? ` <span>${f.source}</span>` : ""}</li>`).join("") + "</ul>";
+      m.append(box); b.addEventListener("click", () => { box.hidden = !box.hidden; b.setAttribute("aria-expanded", String(!box.hidden)); });
+    }
   }
 
   const CSS = `
@@ -603,15 +693,19 @@ body{margin:0;background:var(--m-paper);color:var(--m-ink);font:14px/1.5 -apple-
 .mech-leaders path{fill:none;stroke:var(--m-muted);stroke-width:1}.mech-leaders circle{fill:var(--m-ink)}
 .mech-label{position:absolute;transform:translateY(-50%);font-size:11.5px;line-height:1.2;white-space:nowrap;color:var(--m-ink);background:var(--m-card);border:1px solid var(--m-rule);border-radius:5px;padding:2px 6px}
 .mech-label.pin{transform:translate(-50%,-50%);background:transparent;border:0;font-weight:500;text-shadow:0 0 4px var(--m-card),0 0 4px var(--m-card)}
+.mech-label.pin.box{background:var(--m-card);border:1px solid var(--m-rule);font-size:12.5px;padding:3px 8px;text-shadow:none}
 .mech-panel{position:absolute;left:50%;transform:translateX(-50%);bottom:8px;width:max-content;max-width:min(340px,80%);background:var(--m-card);border:1px solid var(--m-rule);border-radius:9px;padding:9px 11px;font-size:12.5px;line-height:1.45;color:var(--m-muted)}
 .mech-panel b{display:block;color:var(--m-ink);font-weight:600;font-size:13px;margin-bottom:2px}.mech-panel span{display:block}.mech-panel em{display:block;font-style:normal;color:var(--m-ink);margin-top:4px}
 .mech-lesson{border:1px solid var(--m-rule);border-radius:9px;padding:9px 11px;margin:0 0 8px;font-size:13px}
 .mech-lesson .row{display:flex;align-items:center;gap:8px}.mech-lesson b{font-weight:600}.mech-lesson .n{color:var(--m-muted);font-size:12px;margin-right:auto}
 .mech-lesson button{font:inherit;font-size:12px;color:var(--m-ink);background:transparent;border:1px solid var(--m-rule);border-radius:7px;padding:4px 10px;cursor:pointer}
-.mech-lesson p{margin:6px 0 0;color:var(--m-muted)}`;
+.mech-lesson p{margin:6px 0 0;color:var(--m-muted)}
+.mech-sources{border-top:1px solid var(--m-rule);margin-top:10px;padding-top:8px;font-size:12px;color:var(--m-muted)}
+.mech-sources b{color:var(--m-ink);font-weight:600}.mech-sources ul{margin:6px 0 0;padding-left:18px}.mech-sources li{margin:3px 0}
+.mech-sources i{font-style:normal;border:1px solid var(--m-rule);border-radius:4px;padding:0 5px;font-size:11px;margin:0 4px}.mech-sources a{color:var(--m-ink)}`;
 
   try { const t = localStorage.getItem("mech-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}
-  global.mech = { Figure, card, CSS, THEMES, MATS, boxGeo, cylGeo, tubeGeo, profileGeo, latheGeo, torusGeo, voluteGeo, superSection, sweep, loftGeo, plateGeo, roundedRect };
+  global.mech = { Figure, card, CSS, THEMES, MATS, boxGeo, cylGeo, tubeGeo, profileGeo, latheGeo, torusGeo, voluteGeo, superSection, sweep, loftGeo, plateGeo, gearGeo, pitchRadius, wrapPath, hop, roundedRect };
 })(window);
 
 </script>

@@ -24,8 +24,9 @@ Do not ask about look or size. Pick them and say so: "Guided lesson, for someone
 
 Show both to the user before you build. They are cheap to fix. A built figure is not.
 
-- **Fact sheet:** a short table of the numbers and claims the figure will show, each with its source. Look them up. If a number is not verified, do not show it. Mark anything illustrative as illustrative.
-- **Storyboard:** the stages in order, one sentence each, plus the lesson steps if there is a lesson.
+- **Fact sheet:** every number and claim the figure will show, each with a status and a source. Look them up. Do not use a number from memory as if it were sourced. The sheet becomes the `F.facts([...])` list in the scene. Read `references/accuracy.md`.
+- **Shape sheet:** what the real thing looks like, in words, before any geometry. Which way is up. What hangs, what stands, what turns. The 5 to 8 features that make it recognisable. Overall size in the unit you chose. What surrounds it, so the reader has scale (a derailleur needs the wheel, the chain and the cranks).
+- **Storyboard:** the stages in order, one sentence each, plus the lesson steps. For each lesson step, name the part that visibly moves or changes. If nothing changes on screen, the step is not ready.
 
 ## 3. Pick the subject type
 
@@ -33,11 +34,15 @@ Read `references/subjects.md`. It gives the stage pattern, the motion and the cl
 
 - **Machine** (engine, pump, lock): `examples/v8-suv`
 - **Structure** (building, bridge, ship hull): `examples/tower`
-- **Abstract system** (language model, network, algorithm): `examples/llm`
+- **Abstract system** (language model, algorithm): `examples/llm`
+- **Conversation** (DNS, TLS, any protocol or handshake between parties): `examples/dns`
+
+For a small machine with real kinematics (links, springs, a chain), read `examples/derailleur` first. It is the reference for the model, the checks and the facts list.
 
 ## 4. Size it
 
 - **Figure:** one mechanism, 60 to 150 parts. Build it without asking.
+- Count honestly. Copies of one part (chain links, bolts, spokes) count once. The subject itself needs at least 20 distinct parts, apart from its surroundings.
 - **Hero:** one object with its surroundings, 150 to 500 parts. Say that it takes longer, then build.
 - **Epic:** a whole plant, or several systems that all move. Propose a Hero first.
 
@@ -49,18 +54,26 @@ Start from `template/scene.js`. Order: model, mechanism, covers, outer shell, pa
 - Group parts by tag and by assembly, so they ghost and come apart together.
 - Give every part the reader should learn an `info` key, and describe it once with `F.describe`.
 - One `F.onFrame` function reads the state, moves the parts and writes the readout.
+- Use the real parts in the kit. `F.gear` for anything with teeth, `mech.wrapPath` and `F.chain` for a chain or belt round wheels, `F.link` for bars and rods between two moving points, `F.spring` for coils. Do not fake them with discs and loose boxes.
+- Parts that are fixed to each other go in one group and move as one. Cogs on one hub turn together. A part bolted to the frame does not move.
+- Pose comes from the model. If a spring keeps a chain tight, solve the angle that makes the chain length constant. Do not animate by guess.
+- Write `F.check(name, ok, detail)` tests that tie the model to the facts: lengths that must stay constant, clearances, order of steps, parts that must line up.
 
 ## 6. Check, then report
 
 Run `node scripts/build.mjs examples/<name>` and `--light`, then `python3 scripts/capture.py examples/<name>/index.html shots` and `python3 scripts/sheet.py shots`. Read every image.
 
-Self-review. Fix anything that fails before you report:
-- The capture prints `fig.audit()`. `floating` is an empty list.
-- No console errors. Both themes build.
-- The main idea is visible in one stage without reading the caption.
+The capture prints one audit line per stage and saves every lesson step as an image. Self-review. Fix anything that fails before you report:
+- `floating` is empty in every stage. `failedChecks` is empty. No console errors.
+- `hiddenLabels` is empty in every stage. If a label points at a hidden spot, move its anchor with `on` or `offset`, or take it out of that set.
+- `extents` make sense: each tag has the size you expect in your unit, and things that hang are taller than they are deep.
+- `facts.unlinked` and `facts.noSource` are empty. Every `fact` in `F.describe` has a `src` that names an entry in `F.facts`.
+- Stranger test: for the first stage, write one line: what would a person who has never seen this figure say it is? If the answer is not the subject, fix the shape or add its surroundings.
+- For each lesson image, check that the screen shows what the step text says. A step that claims a motion must show that motion.
 - Each stage adds one thing. Each hint states something the reader can see.
-- Labels point at the right parts and do not cover the subject.
-- Readout numbers match the model. The caption states every simplification.
+- Readout words and numbers come from the model, from the same instant.
+- The caption states every simplification, and both themes work.
+- Run the second check in `references/accuracy.md` on `shots/audit.json`.
 
 Report in this shape: what you built, what you checked, what you simplified, what you did not test.
 
@@ -76,6 +89,8 @@ When a review finds a mistake that could happen again, add one line to `referenc
 - **Colour is rationed.** Watched parts are `machined`. Warm colour means heat, weight or the active signal. Cool colour means fresh air, cold or a second path. Blue highlight means "selected".
 - **Ghost, do not delete.** Fade covers with `F.ghost(tag, 0.06)`. A closed shell hides what is inside it, so ghost it or cut an opening.
 - **Flow shows direction, not speed.** Say so in the caption.
+- **Every shown fact has a status.** `sourced` (with a link), `model` (worked out), `assumed` (typical value) or `illustrative` (made up). The Sources button on the card shows them to the reader.
+- **Plain text.** Short sentences. No dashes used as asides. No brand names unless the subject is that brand's published mechanism.
 - **Simplifications are stated.** Slow motion, simplified timing, made-up values and generic shells all go in the caption.
 - **Both themes in one page.** The card has a Light/Dark button. Read the theme inside `start()` and keep the `mech-theme` listener from the template, so the button rebuilds the figure.
 - **Rest state.** `F.tour` steps through the stages when nobody touches the figure. It stops during a lesson, a quiz or a selection.
@@ -87,6 +102,9 @@ const F = new mech.Figure("#fig", { theme, style: "real" | "line", width: 760, h
 // parts (all stand on z = 0 at their own origin; opts: mat, tone, color, at, rot, tag, info, group, edges, shadow, explode, channel)
 F.box({ w, d, h, r }, opts);  F.cyl({ r, h, n, axis }, opts);  F.tube(points, radius, opts);
 F.lathe([[radius, height], ...], { axis, n }, opts);  F.torus({ R, r, axis }, opts);  F.plate({ w, d, h, holes }, opts);
+F.gear({ teeth, pitch, thick, hole, axis }, opts);  mech.pitchRadius(teeth, pitch);
+const path = mech.wrapPath([{ c: [x, z], r, s, y }, ...]);  const chain = F.chain({ count, pitch, width }, opts);  chain.place(path, phase);
+const bar = F.link(a, b, { w, d }, opts);  bar.setEnds(a, b);  const coil = F.spring(a, b, { r, turns }, opts);  coil.setEnds(a, b);
 F.add(mech.loftGeo(sections, { filter }), opts);  F.add(mech.voluteGeo({ R, r0, r1 }), opts);  F.add(mech.profileGeo(points, depth), opts);
 F.group({ at, rot, group, info, explode, channel });  F.led(at, r, opts);  F.screws(points);  F.fins(count, layout, opts);
 // materials: castAl machined steel darkSteel iron chrome brass plastic rubber glass paint concrete light
@@ -95,11 +113,14 @@ F.ghost(tagOrParts, alpha);  F.focus(objectOrBox3, { azimuth, elevation, pad });
 F.glow(mesh, 0..1, color);  F.shadow(0..1);  F.onFrame((dt, t) => {});  F.readout(text);  F.tour(stepFn);  F.audit();
 // teaching
 F.describe({ key: { name, role, fact } });        // click a part with info: key to see this
-F.label(key, { on, set, text, pin });  F.labels(set);     // pointers in two columns, or pinned text
+const L = F.label(key, { on, offset, set, text, pin, box });  F.labels(set);  L.text("new text");   // pointers in two columns, or pinned text
+mech.hop(a, b, t, lift);                           // a point on an arc from a to b, for packets between stations
+// accuracy
+F.facts([{ id, claim, status, source, url }]);  F.describe({ key: { name, role, fact, src: "factId" } });  F.check(name, ok, detail);
 F.flow(points, { color, count, speed, r, group, set });  F.flows(set);
 const lesson = F.lesson([{ title, text, go() }], { onClose });  lesson.open(0);
 const quiz = F.quiz([{ ask, key, also }]);  quiz.start();
 mech.card("#fig", { fig, title, keys, caption });
 ```
 
-References: `references/subjects.md` (stage patterns), `references/teach.md` (labels, lessons, quizzes), `references/kit.md` (API detail), `references/craft.md` (making it look made), `references/lessons.md` (mistakes not to repeat).
+References: `references/subjects.md` (stage patterns), `references/accuracy.md` (facts, checks, second check), `references/teach.md` (labels, lessons, quizzes), `references/kit.md` (API detail), `references/craft.md` (making it look made), `references/lessons.md` (mistakes not to repeat).

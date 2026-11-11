@@ -1,7 +1,7 @@
 """Screenshot a built figure at each stage, plus optional close-ups.
 Usage: python3 scripts/capture.py examples/v8-suv/index.html shots [stage,stage,...]
 Needs: pip install playwright, and Chrome. three.js is served from node_modules when the CDN is not reachable."""
-import asyncio, os, sys
+import asyncio, json, os, sys
 from playwright.async_api import async_playwright
 
 page_path = os.path.abspath(sys.argv[1])
@@ -34,13 +34,28 @@ async def main():
             await pg.wait_for_timeout(1800)
             box = await pg.evaluate("(()=>{const r=document.querySelector('#fig').getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height}})()")
             await pg.screenshot(path=os.path.join(out, f"stage{s}.png"), clip=box, animations="disabled")
+            au = json.loads(await pg.evaluate("JSON.stringify(fig.audit())"))
+            print(f"stage {s}: floating {au['floating']}, hidden labels {au['hiddenLabels']}, failed checks {au['failedChecks']}")
+        # every lesson step, so the reviewer can check that each step shows what its text says
+        if await pg.locator("[data-t=lesson]").count():
+            await pg.click("[data-t=lesson]"); n = 0
+            while True:
+                await pg.wait_for_timeout(1800); n += 1
+                await pg.screenshot(path=os.path.join(out, f"lesson{n}.png"), clip=box, animations="disabled")
+                txt = await pg.inner_text(".mech-lesson .n")
+                if txt.split()[1] == txt.split()[3] or n > 12: break
+                await pg.click(".mech-lesson button[data-d='1']")
+            await pg.click(".mech-lesson button[data-d='0']")
         extra = os.environ.get("EXTRA")
         if extra:
             for i, js in enumerate(extra.split(";;")):
                 await pg.evaluate(js); await pg.wait_for_timeout(2200)
                 await pg.screenshot(path=os.path.join(out, f"stage9{i}.png"), clip=box, animations="disabled")
         await pg.evaluate("window.setStage && setStage(0)"); await pg.wait_for_timeout(1500)
-        print("audit:", await pg.evaluate("JSON.stringify(fig.audit())"))
+        full = await pg.evaluate("JSON.stringify(Object.assign(fig.audit(), { factList: fig.factList || [], described: fig.infoDict }))")
+        open(os.path.join(out, "audit.json"), "w").write(full)
+        au = json.loads(full); au.pop("factList"); au.pop("described")
+        print("audit:", json.dumps(au))
         print("errors:", errs)
         await b.close()
 

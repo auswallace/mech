@@ -9,7 +9,7 @@ Things with moving parts: engines, pumps, locks, watches, printers.
 - **Motion:** the mechanism runs all the time. A control changes speed or load.
 - **Lesson:** one cycle, one step at a time, on one unit (one cylinder, one tooth, one valve).
 - **Flow:** what goes in and what comes out (air, fuel, water, current).
-- **Example:** `examples/v8-suv`.
+- **Examples:** `examples/v8-suv` (large), `examples/derailleur` (small, with real linkage and chain kinematics).
 
 ## Structure
 Things that stand: buildings, bridges, towers, hulls, furniture.
@@ -27,6 +27,17 @@ Things with no physical shape: language models, networks, algorithms, protocols,
 - **Motion:** one item travels through the system. Hold it at a step for each stage.
 - **Lesson:** follow that one item from input to output.
 - **Example:** `examples/llm`.
+
+## Conversation
+Parties that exchange messages: DNS, TLS, logins, payment flows, any protocol or handshake.
+- **Layout:** each party is a station at a fixed place. Near the reader is "your side", far is "the other side". Put a hierarchy on steps.
+- **Messages are packets you can read.** One packet travels from station to station. A boxed, pinned label on it shows what it says in plain words. One colour for questions, one for replies.
+- **State is visible.** What a party knows or holds is an object at its station (a cache entry, a key, a certificate). It appears at the step where the party gets it.
+- **Stages:** the whole exchange on a loop, then one stage per key message with the packet held on that hop.
+- **Model:** an ordered list of messages `{ from, to, kind, say, note }`. The animation, the lesson and the hints all read from that list.
+- **Checks:** every question gets a reply from the party that was asked, the order matches the standard, and the short path (cached, resumed) skips the right steps.
+- **Lesson:** one step per message, in order, then the "second time" or "what if" case.
+- **Example:** `examples/dns`.
 
 ## Process (not built yet)
 Things that happen in steps: a supply chain, a chemical plant, a build pipeline. Stages: input, each step, output. Flow is the main feature.

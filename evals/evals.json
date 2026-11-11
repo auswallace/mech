@@ -1,0 +1,91 @@
+{
+ "skill": "mech",
+ "how_to_run": "Give each prompt to a fresh session with the skill, answer the intake with the listed answers, then score the result against `pass`. Run after every change to the skill.",
+ "evals": [
+  {
+   "id": 1,
+   "type": "machine",
+   "prompt": "Use the mech skill. Show me how a bicycle rear derailleur shifts gears.",
+   "intake": [
+    "Guided lesson",
+    "New to this",
+    "How the chain moves from one cog to the next"
+   ],
+   "pass": [
+    "Stage 1 is recognisable as the back of a bike: wheel, chain, cranks, cassette, derailleur.",
+    "The derailleur hangs below the cassette.",
+    "Cogs have teeth and turn as one. The chain is a continuous loop round the cog, the chainring and both pulleys.",
+    "A shift swings the links and moves the guide pulley under the chosen cog. The cage angle changes with the gear.",
+    "Every lesson image shows the motion its text names.",
+    "Audit: no floating parts, no hidden labels, no failed checks, at least 6 checks, facts list present with at least 2 sourced entries.",
+    "Cog spacing and tooth counts match a cited source."
+   ]
+  },
+  {
+   "id": 2,
+   "type": "machine",
+   "prompt": "Use the mech skill. Show me how a pin-tumbler lock opens.",
+   "intake": [
+    "Guided lesson",
+    "New to this",
+    "Why the right key works and the wrong key does not"
+   ],
+   "pass": [
+    "Stage 1 is recognisable as a lock cylinder with a key.",
+    "Each pin stack has a key pin, a driver pin and a spring. The springs are coils that change length.",
+    "With the right key every gap lines up at the shear line and the plug turns. With a wrong key at least one pin blocks it, and the plug does not turn.",
+    "A check proves the shear line condition for the right key and its failure for the wrong key.",
+    "Audit clean. Facts list present."
+   ]
+  },
+  {
+   "id": 3,
+   "type": "conversation",
+   "prompt": "Use the mech skill. Show me how a TLS 1.3 handshake sets up an encrypted connection.",
+   "intake": [
+    "Guided lesson",
+    "Some background",
+    "What each side knows at each step"
+   ],
+   "pass": [
+    "Two stations, client and server, with packets that carry readable message names in the order of the standard.",
+    "Keys and the certificate appear at a station at the step where that side gets them.",
+    "A what-if case: a certificate that fails the check stops the handshake at that step.",
+    "Checks cover message order and who holds which key when.",
+    "Every protocol claim is sourced to the RFC or a reference that cites it."
+   ]
+  },
+  {
+   "id": 4,
+   "type": "structure",
+   "prompt": "Use the mech skill. Show me how a suspension bridge carries a truck.",
+   "intake": [
+    "Quick look",
+    "New to this",
+    "Where the weight goes"
+   ],
+   "pass": [
+    "Stage 1 is recognisable as a suspension bridge: towers, main cables, hangers, deck, anchorages.",
+    "Flow dots show the load path: deck to hangers to main cable to towers and anchorages.",
+    "The caption says the bridge is generic and states which sizes are illustrative.",
+    "Audit clean."
+   ]
+  },
+  {
+   "id": 5,
+   "type": "abstract",
+   "prompt": "Use the mech skill. Show me how a hash table stores and finds a key.",
+   "intake": [
+    "Guided lesson",
+    "New to this",
+    "Why lookup is fast"
+   ],
+   "pass": [
+    "Position has meaning and the caption states it.",
+    "One key travels: hashed to a bucket index, placed, then found again by the same path.",
+    "A collision case is shown.",
+    "Checks cover: the same key always lands in the same bucket."
+   ]
+  }
+ ]
+}

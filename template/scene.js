@@ -11,6 +11,10 @@
     F = new mech.Figure("#fig", { theme: document.documentElement.dataset.theme || "dark", style: state.style, width: 760, height: 480, azimuth: 38, elevation: 24 });
     const REAL = state.style === "real";
 
+    // ---------- facts and checks: every shown number has a status and a source (references/accuracy.md) ----------
+    F.facts([{ id: "example", claim: "One claim the reader will see.", status: "illustrative" }]);
+    F.check("a test that ties the model to the facts", true);
+
     // ---------- 2. parts: mechanism first, covers second, shell last. Give parts a tag and an info key. ----------
     const base = F.box({ w: 60, d: 40, h: 4, r: 3 }, { mat: "darkSteel", tag: "base", info: "base" });
     const part = F.cyl({ r: 8, h: 20, n: 32 }, { mat: "machined", at: [0, 0, 4], tag: "moving", info: "part" });
@@ -18,7 +22,7 @@
     // ---------- 3. what each part is ----------
     F.describe({
       base: { name: "Base", role: "What it does, in one plain sentence." },
-      part: { name: "Part", role: "What it does, and why it matters.", fact: "One true number." },
+      part: { name: "Part", role: "What it does, and why it matters.", fact: "One true number.", src: "example" },
     });
     F.label("base", { set: "whole" }); F.label("part", { set: "whole" });
 
