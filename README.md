@@ -19,7 +19,7 @@ Open `index.html` in a browser. Keys 1 to 6 change stage, Space goes to the next
 
 ## Use as an agent skill
 
-Copy or clone this repository into your skills folder as `mech` (for example `~/.claude/skills/mech`). Then ask: "use mech to show me how a dishwasher works".
+Copy or clone this repository into your agent's skills folder as `mech`. Then ask: "use mech to show me how a dishwasher works".
 
 ## Layout
 
