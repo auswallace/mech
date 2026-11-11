@@ -1,6 +1,6 @@
 ---
 name: mech
-description: Build interactive 3D figures that show and teach how something works by letting the reader open it up. Use when someone asks "show me how X works", "show me inside X", "teach me X visually", or wants an explainer, cutaway, exploded view, x-ray view or teardown of a machine, device, vehicle, building, system or abstract idea (a network, an algorithm, a language model). Output is one self-contained HTML page with stages, labels, click-to-learn part info, a guided lesson, flow paths, a quiz and a live readout.
+description: Build interactive 3D figures that show and teach how something works by letting the reader open it up. Use when someone asks "show me how X works", "show me inside X", "teach me X visually", or wants an explainer, cutaway, exploded view, x-ray view or teardown of a machine, device, vehicle, building, system or abstract idea (a network, an algorithm, a language model). Output is one self-contained HTML page with stages, labels, click-to-learn part info, a guided lesson, flow paths and a live readout.
 license: MIT
 ---
 
@@ -14,7 +14,7 @@ The core is real 3D with an isometric camera. Depth, orbit, ghosting and explode
 
 Infer first. Ask only what the request does not already answer. Ask at most three questions, as tap options with the default first (use the option-question tool if there is one). If the user says "just build it", or nobody is there to answer, pick the defaults and state them in one line.
 
-1. **How deep?** Quick look (3 stages and labels) / **Guided lesson** (default: stages, labels, click to learn, lesson) / Full teardown (adds apart view, flow and quiz).
+1. **How deep?** Quick look (3 stages and labels) / **Guided lesson** (default: stages, labels, click to learn, lesson) / Full teardown (adds apart view and flow). Add a quiz only when the reader asks for one.
 2. **Who is it for?** **New to this** (default: plain words, analogies) / Some background (correct terms) / Expert (real numbers, edge cases).
 3. **What matters most?** Write 2 to 4 options for this subject. Example for an engine: how it makes power / how the turbos work / where everything is. This sets what the figure centres on.
 
