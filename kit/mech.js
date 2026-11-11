@@ -175,6 +175,7 @@
   }
 
   // ---------- the figure ----------
+  const VERSION = "0.4";
   class Figure {
     constructor(mount, { theme = "dark", style = "line", width = 640, height = 420, azimuth = 40, elevation = 32, hint = "", readout = "" } = {}) {
       this.mount = typeof mount === "string" ? document.querySelector(mount) : mount;
@@ -657,5 +658,5 @@ body{margin:0;background:var(--m-paper);color:var(--m-ink);font:14px/1.5 -apple-
 .mech-sources i{font-style:normal;border:1px solid var(--m-rule);border-radius:4px;padding:0 5px;font-size:11px;margin:0 4px}.mech-sources a{color:var(--m-ink)}`;
 
   try { const t = localStorage.getItem("mech-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}
-  global.mech = { Figure, card, CSS, THEMES, MATS, boxGeo, cylGeo, tubeGeo, profileGeo, latheGeo, torusGeo, voluteGeo, superSection, sweep, loftGeo, plateGeo, gearGeo, pitchRadius, wrapPath, hop, roundedRect };
+  global.mech = { VERSION, Figure, card, CSS, THEMES, MATS, boxGeo, cylGeo, tubeGeo, profileGeo, latheGeo, torusGeo, voluteGeo, superSection, sweep, loftGeo, plateGeo, gearGeo, pitchRadius, wrapPath, hop, roundedRect };
 })(window);

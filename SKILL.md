@@ -10,6 +10,9 @@ A figure is a small true model of a thing that the reader can step into: whole o
 
 The core is real 3D with an isometric camera. Depth, orbit, ghosting and exploded views come from the renderer. You spend your effort on the model, the parts and the teaching.
 
+## 0. Use the current skill
+Before you build, update this folder: run `git pull` in it. Then read `VERSION` in `kit/mech.js` and say it in your report ("built with mech 0.4"). A figure from an old copy of the kit does not have the newer parts and checks. If the kit has no `F.gear`, `F.facts` or `F.check`, the copy is old. Stop and update.
+
 ## 1. Intake: three questions, asked as options
 
 Infer first. Ask only what the request does not already answer. Ask at most three questions, as tap options with the default first (use the option-question tool if there is one). If the user says "just build it", or nobody is there to answer, pick the defaults and state them in one line.

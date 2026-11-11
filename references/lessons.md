@@ -24,3 +24,7 @@ One line per mistake found in review. Read this before you build. Add to it when
 - Many copies of one part inflate the part count. Count distinct parts.
 - A number from memory can be the wrong standard (3.95 mm is 10-speed cog spacing, 8-speed is 4.8 mm). Look it up and record the source.
 - A packet in flight touches nothing, so the floating check skips the `packet` and `flow` tags. Tag moving messages that way.
+- An old copy of the skill builds old mistakes. Update the skill folder before each build and report the kit version.
+- Bridges and cover plates hide a movement. Make them see-through from the first stage that shows the mechanism, or leave them out and say so.
+- A fan of flat plates does not read as a toothed wheel. An escape wheel, a ratchet and a sprocket are all `F.gear`.
+- When the lesson names a part (the pallet fork), that part must exist as its own visible shape, not as two loose blocks.
