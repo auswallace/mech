@@ -6,7 +6,7 @@ from playwright.async_api import async_playwright
 
 page_path = os.path.abspath(sys.argv[1])
 out = os.path.abspath(sys.argv[2] if len(sys.argv) > 2 else "shots")
-stages = [int(s) for s in sys.argv[3].split(",")] if len(sys.argv) > 3 else [0, 1, 2, 3, 4]
+stages = [int(s) for s in sys.argv[3].split(",")] if len(sys.argv) > 3 else [0, 1, 2, 3, 4, 5]
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 THREE = os.path.join(ROOT, "node_modules/three/build/three.min.js")
 CHROME = os.environ.get("CHROME", "/usr/bin/google-chrome")
@@ -26,11 +26,16 @@ async def main():
                 await r.continue_()
         await pg.route("**/*", route)
         await pg.goto("file://" + page_path)
-        await pg.wait_for_timeout(1500)
+        await pg.wait_for_timeout(2500)
+        print("early errors:", errs)
+        await pg.evaluate("fig.snap = true; fig.tourCfg = null")
         for s in stages:
             await pg.evaluate(f"window.setStage && setStage({s})")
-            await pg.wait_for_timeout(2600)
-            await pg.locator("#fig").screenshot(path=os.path.join(out, f"stage{s}.png"))
+            await pg.wait_for_timeout(1800)
+            box = await pg.evaluate("(()=>{const r=document.querySelector('#fig').getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height}})()")
+            await pg.screenshot(path=os.path.join(out, f"stage{s}.png"), clip=box, animations="disabled")
+        await pg.evaluate("setStage(0)"); await pg.wait_for_timeout(1500)
+        print("audit:", await pg.evaluate("JSON.stringify(fig.audit())"))
         print("errors:", errs)
         await b.close()
 
