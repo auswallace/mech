@@ -12,20 +12,16 @@ You ask "show me how a dishwasher works". The assistant follows this skill and g
 
 ## Gallery
 
-Every picture below is a figure that the skill made. Each one links to the live figure. Open one, step through the stages, and click the parts.
+Four figures that the skill made, on four different kinds of subject. Each picture links to the live figure. Open one, step through the stages, and click the parts.
 
 | | |
 |---|---|
-| [![Formula 1 power unit](docs/f1-power-unit.gif)](https://auswallace.github.io/mech/examples/f1-power-unit/) | [![Rear derailleur](docs/derailleur.gif)](https://auswallace.github.io/mech/examples/derailleur/) |
-| The 2026 Formula 1 power unit, in a car that drives | How a rear derailleur shifts |
-| [![Laser line profiler](docs/gocator.gif)](https://auswallace.github.io/mech/examples/gocator/) | [![DNS lookup](docs/dns.gif)](https://auswallace.github.io/mech/examples/dns/) |
-| How a laser line profiler measures height | How DNS finds an address |
-| [![Submarine sonar and torpedo](docs/submarine.gif)](https://auswallace.github.io/mech/examples/submarine/) | [![Language model](docs/llm.gif)](https://auswallace.github.io/mech/examples/llm/) |
-| How a submarine finds a target, and inside a torpedo | Inside a small language model |
-| [![Twin-turbo V8](docs/v8-suv.gif)](https://auswallace.github.io/mech/examples/v8-suv/) | [![Office tower](docs/tower.gif)](https://auswallace.github.io/mech/examples/tower/) |
-| Twin-turbo V8 in an SUV | Structure of a 20-storey tower |
-| [![Ball-and-disc integrator](docs/integrator.gif)](https://auswallace.github.io/mech/examples/integrator/) | |
-| A machine that does calculus with a ball and a disc | |
+| [![Formula 1 power unit](docs/f1-power-unit.gif)](https://auswallace.github.io/mech/examples/f1-power-unit/) | [![The human eye](docs/eye.gif)](https://auswallace.github.io/mech/examples/eye/) |
+| **A machine.** The 2026 Formula 1 power unit, in a car that drives | **The body.** How the eye focuses near and far |
+| [![GPS](docs/gps.gif)](https://auswallace.github.io/mech/examples/gps/) | [![Undersea cable](docs/undersea-cable.gif)](https://auswallace.github.io/mech/examples/undersea-cable/) |
+| **Something you cannot see.** How GPS finds where you are while you drive | **The internet.** How a message crosses the ocean in an undersea cable |
+
+There are more: a bike derailleur, a laser sensor, a DNS lookup, a submarine, a language model, a V8, an office tower and a mechanical calculus machine. [EXAMPLES.md](EXAMPLES.md) has all of them, with a link to each live figure.
 
 ## Use the skill
 
@@ -69,6 +65,9 @@ The Sources button and the checks came in with the newer examples. The oldest on
 ## Examples
 
 - `examples/f1-power-unit`: the 2026 Formula 1 power unit, in a car that drives.
+- `examples/eye`: how the human eye focuses near and far.
+- `examples/gps`: how GPS finds where you are while you drive.
+- `examples/undersea-cable`: how a message crosses the ocean in an undersea cable.
 - `examples/derailleur`: how a rear derailleur shifts gears.
 - `examples/gocator`: how a laser line profiler measures height.
 - `examples/dns`: how DNS finds the address of a website.

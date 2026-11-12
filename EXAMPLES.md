@@ -1,12 +1,30 @@
 # Examples
 
-Each one is a worked figure in `examples/`. The gallery in the [README](README.md) links to the live pages.
+Each one is a worked figure in `examples/`. The gallery in the [README](README.md) shows four of them.
 
 ## `examples/f1-power-unit`
 
 The 2026 Formula 1 power unit in a generic single seater that drives. The road scrolls and the wheels roll from one speed slider, and everything keeps running as you step in. Three stages: the car, the power unit, inside the V6. The readout works out fuel energy flow, engine power, electric power and the electric share from the regulation formulas. Split crank pins give the even 120 degree firing interval. It carries 30 facts, 22 of them sourced, and 20 model checks.
 
 [Open the figure](https://auswallace.github.io/mech/examples/f1-power-unit/)
+
+## `examples/eye`
+
+How the human eye focuses near and far. Three stages: the whole eye looking at a flower, the eye cut open with the rays traced through it, and a distance slider that moves the flower. The lens bulges to keep the rays on the retina, and a small panel shows what the retina gets, sharp or blurry. The rays come from a paraxial trace through the Le Grand schematic eye, down to a 10 cm near point. It carries 15 facts, 11 of them sourced, and 14 model checks.
+
+[Open the figure](https://auswallace.github.io/mech/examples/eye/)
+
+## `examples/gps`
+
+How GPS finds where you are while you drive. A car drives a loop road on a curved Earth under four satellites. Three stages: the car, the four signals with the distance each one gives, and the four distances drawn as rings on the ground that cross at the car. A trail of fixes follows the car round the loop. The readout comes from a model with satellites 20,200 km up and a receiver that solves its position and clock error from four distances. It carries 13 facts, 9 of them sourced, and 7 model checks.
+
+[Open the figure](https://auswallace.github.io/mech/examples/gps/)
+
+## `examples/undersea-cable`
+
+How a message crosses the ocean. Three stages: a globe with a cable from New York to London and a pulse of light on it, the cable on the sea floor with a repeater, and the cable cut open layer by layer next to a coin for scale. The cable is about 25 mm across, and the glass fibres in the middle are about as thin as a hair. The readout works out the crossing time from the distance and the speed of light in glass. The layer order is sourced, and the thickness of each layer is marked illustrative. It carries 20 facts, 15 of them sourced, and 9 model checks.
+
+[Open the figure](https://auswallace.github.io/mech/examples/undersea-cable/)
 
 ## `examples/derailleur`
 
