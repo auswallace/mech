@@ -4,6 +4,10 @@
 
 You ask your AI agent "show me how a dishwasher works". The agent follows this skill and gives you one HTML page: a 3D model that you can open up stage by stage, with labels, part info, a guided lesson and a live readout. It works for machines, buildings, abstract systems (a language model) and conversations between systems (DNS).
 
+[![From one prompt to a working figure](docs/demo.gif)](https://auswallace.github.io/mech/docs/demo.mp4)
+
+One prompt, one figure. Click the preview for the full video.
+
 Every picture below is a figure that the skill made.
 
 ## Gallery
