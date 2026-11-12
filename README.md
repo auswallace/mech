@@ -18,8 +18,8 @@ Each picture links to the live figure. Open one, step through the stages, and cl
 | How DNS finds an address | Inside a small language model |
 | [![Office tower](docs/tower.gif)](https://auswallace.github.io/mech/examples/tower/) | [![Laser line profiler](docs/gocator.gif)](https://auswallace.github.io/mech/examples/gocator/) |
 | Structure of a 20-storey tower | How a laser line profiler measures height |
-| [![Ball-and-disc integrator](docs/integrator.gif)](https://auswallace.github.io/mech/examples/integrator/) | |
-| A machine that does calculus with a ball and a disc | |
+| [![Ball-and-disc integrator](docs/integrator.gif)](https://auswallace.github.io/mech/examples/integrator/) | [![Submarine sonar and torpedo](docs/submarine.gif)](https://auswallace.github.io/mech/examples/submarine/) |
+| A machine that does calculus with a ball and a disc | How a submarine finds a target, and inside a torpedo |
 
 ## Examples
 
@@ -29,6 +29,7 @@ Each picture links to the live figure. Open one, step through the stages, and cl
 - `examples/dns`: how DNS finds the address of a website. Five stations, eight readable messages, a cache that fills and expires.
 - `examples/gocator`: how a laser line profiler turns a laser line into heights, with the Gocator 2630 as the reference model. Eight stages from the sensor on a conveyor to the parts apart and back together, a height slider that moves the line on the image chip, the spec sheet terms drawn at full size, and a scan that builds up profile by profile. Two lessons: one measurement from laser to result, and a build with one step for each component. The data sheet numbers are sourced. The housing is generic, and the internal layout is marked illustrative.
 - `examples/integrator`: a ball-and-disc integrator, the part that mechanical computers used to do calculus. The disc is time, the ball position is a speed, and the turn of the roller is the distance. Six stages: the machine, the contact, centre and edge, a trip with a live plot of speed and distance, the same sum in brass, in a capacitor and in code, and two integrators in a loop that draw a sine. Checks prove rolling without slip and that the roller follows the area under the curve.
+- `examples/submarine`: how a submarine finds a target, and what is inside a torpedo. Three stages: the whole boat, the bow opened up for the sonar, and a torpedo leaving its tube. The sphere array sends one pulse, and the readout gives the range from the echo time. The torpedo is split into its sections, with the guide wire paying out behind it. The speed of sound in seawater, how active and passive sonar work, and the torpedo's size, propulsion and guidance are sourced. The hull, the depth and the layout inside are generic and marked illustrative. Warhead size, explosive type and fuzing are left out on purpose.
 - `examples/llm`: the inside of a small language model. Tokens, embeddings, 12 layers of attention and MLP, and the next-token output, with the sizes of GPT-2 small.
 
 Every figure has labels, click-to-learn part info, a guided lesson and a light and dark theme. The newer ones also have a Sources button that shows where each fact comes from.
