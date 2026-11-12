@@ -11,6 +11,8 @@
 - Audit: floating parts, hidden labels, tag sizes, failed checks, unlinked facts. Capture saves every lesson step.
 - Real parts: toothed gears, chain or belt paths round wheels, links, springs.
 - Light and dark theme button. Test prompts with pass criteria in `evals/`.
+- In motion: `F.road` scrolls the surroundings under a subject that stays put, wheels roll from the same speed, and the motion carries through every stage. Example: the 2026 Formula 1 power unit.
+- A stronger selection highlight: blue tint, slow glow and outline.
 
 ## Next
 - More parts: bearings, pumps, valves, motors, circuit boards, connectors, bolts with real heads.

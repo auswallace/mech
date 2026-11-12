@@ -30,3 +30,12 @@ One line per mistake found in review. Read this before you build. Add to it when
 - When the lesson names a part (the pallet fork), that part must exist as its own visible shape, not as two loose blocks.
 - A reader clicks the label, not the part. Labels of described parts open the part panel. Check that a click on a label works.
 - One block of text in the part panel mixes what a part is with what it does and how. Use `what`, `does`, `how`, one claim each, and give `src`.
+- A flat surface that faces up catches the key light and the studio environment, so a dark grey renders pale. `F.road` uses a near-black base and turns the environment down. Do the same for any ground you add.
+- A colour with no `mat` gets a glossy material. Give `mat: "rubber"` with the colour for a matte painted surface.
+- A large see-through plane that fills the view makes each frame so slow that the screenshot times out. Ghost big ground planes to 0 in close stages.
+- Ground added to the scene changes what `F.focus(null)` frames. Focus stage 1 on a box round the subject.
+- A turning wheel group must hold only what turns. A brake caliper or a fixed cover in that group orbits the axle.
+- The audit measures a turning part with a box that grows with its angle, so `extents` reads up to 1.4 times too big for it. Check the size with the part at rest.
+- When the mechanism never stops, a label anchor that is clear in one capture hides in the next. Capture a moving stage three times before you call the labels clean.
+- An emissive glow on a pale metal part washes out to near white. A highlight needs a tint on the base colour and an outline as well.
+- A helper cut from a scene during a refactor can still be used further down. Rebuild and read "early errors" after every edit.

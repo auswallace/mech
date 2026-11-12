@@ -26,6 +26,16 @@ Options for all parts: `tone` (`hi`, `mid`, `lo`), `lit`, `color` (hex, override
 - Parts with `explode` move by that vector times their channel value. `F.setExplode(1)` drives the default channel.
 - `F.setCut({ normal, at })` clips every part with one plane. Use ghosting first; a cut shows hollow shells.
 
+## In motion
+- `F.road({ length, width, x, pitch, kerbs, lines, seams, tag })` builds a strip of tarmac at ground level: a dark slab, white edge lines, kerb blocks in two colours and seams across it. Tag is `road`. It returns `{ group, track, slab, pitch, wrap, span, length, move(d) }`.
+- `move(d)` scrolls the kerbs and seams by `d` and wraps every two kerb blocks, so the join never shows. `span` is how far the kerbs reach through a whole wrap. The kit keeps it inside the slab.
+- Roll a wheel group of radius `r` with `wheel.rotation.y += d / r` for the same `d`. That is rolling without slipping.
+- The road is part of the scene, so `F.focus(null)` frames the road. Focus on a `THREE.Box3` round the subject.
+- A see-through road fills the screen in a close stage and makes each frame slow. Ghost the `road` tag to 0 there.
+
+## Selection
+A click on a part or its label selects its info key. Every part with that key gets a blue tint, a blue glow that breathes slowly, and a blue outline. Blue means "selected" and nothing else, so do not use that blue for a part.
+
 ## Camera
 `F.focus(target, { azimuth, elevation, pad, snap })`. `target` is an object, a `THREE.Box3`, or nothing for the whole figure. `pad` below 1 zooms in past the bounding box.
 
