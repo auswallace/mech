@@ -42,3 +42,4 @@ One line per mistake found in review. Read this before you build. Add to it when
 - Most fix rounds need the audit line, not the pictures. Use `capture.py --audit` while you fix, and take pictures once the audit is clean.
 - A label on a part that is fully covered has no clear spot, and no anchor can fix it. Ghost the cover or drop the label from that set.
 - A GIF palette taken from one frame loses the colours of the other stages. `gif.py` now samples frames across the clip.
+- A lathe profile listed from the top down gives faces that point inward: a ball renders dark and see-through. List the profile from the bottom up.
