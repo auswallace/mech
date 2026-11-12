@@ -16,12 +16,12 @@ Four figures that the skill made, on four different kinds of subject. Each pictu
 
 | | |
 |---|---|
-| [![Formula 1 power unit](docs/f1-power-unit.gif)](https://auswallace.github.io/mech/examples/f1-power-unit/) | [![The human eye](docs/eye.gif)](https://auswallace.github.io/mech/examples/eye/) |
-| **A machine.** The 2026 Formula 1 power unit, in a car that drives | **The body.** How the eye focuses near and far |
+| [![Formula 1 power unit](docs/f1-power-unit.gif)](https://auswallace.github.io/mech/examples/f1-power-unit/) | [![Laser scanner](docs/gocator.gif)](https://auswallace.github.io/mech/examples/gocator/) |
+| **A machine.** The 2026 Formula 1 power unit, in a car that drives | **A scanner.** How a laser line profiler measures height |
 | [![GPS](docs/gps.gif)](https://auswallace.github.io/mech/examples/gps/) | [![Undersea cable](docs/undersea-cable.gif)](https://auswallace.github.io/mech/examples/undersea-cable/) |
 | **Something you cannot see.** How GPS finds where you are while you drive | **The internet.** How a message crosses the ocean in an undersea cable |
 
-There are more: a bike derailleur, a laser sensor, a DNS lookup, a submarine, a language model, a V8, an office tower and a mechanical calculus machine. [EXAMPLES.md](EXAMPLES.md) has all of them, with a link to each live figure.
+There are more: the human eye, a bike derailleur, a DNS lookup, a submarine, a language model, a V8, an office tower and a mechanical calculus machine. [EXAMPLES.md](EXAMPLES.md) has all of them, with a link to each live figure.
 
 ## Use the skill
 
