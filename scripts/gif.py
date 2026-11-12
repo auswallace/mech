@@ -39,7 +39,11 @@ async def main():
                 png = await pg.screenshot(clip=r, animations="disabled")
                 im = Image.open(io.BytesIO(png)).convert("RGB"); im.thumbnail((600, 600)); frames.append(im)
         await b.close()
-    pal = frames[len(frames) // 2].quantize(colors=96, method=Image.Quantize.MEDIANCUT)
+    # one palette from frames spread over the whole clip, so a colour that only one stage has is kept
+    pick = frames[:: max(1, len(frames) // 8)]
+    strip = Image.new("RGB", (pick[0].width * len(pick), pick[0].height))
+    for k, f in enumerate(pick): strip.paste(f, (k * f.width, 0))
+    pal = strip.quantize(colors=128, method=Image.Quantize.MEDIANCUT)
     q = [f.quantize(palette=pal, dither=Image.Dither.NONE) for f in frames]
     q[0].save(out, save_all=True, append_images=q[1:], duration=80, loop=0, optimize=True)
     print(out, len(frames), "frames", os.path.getsize(out) // 1024, "KB")
