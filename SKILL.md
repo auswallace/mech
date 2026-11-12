@@ -11,7 +11,7 @@ A figure is a small true model of a thing that the reader can step into: whole o
 The core is real 3D with an isometric camera. Depth, orbit, ghosting and exploded views come from the renderer. You spend your effort on the model, the parts and the teaching.
 
 ## 0. Use the current skill
-Before you build, update this folder: run `git pull` in it. Then read `VERSION` in `kit/mech.js` and say it in your report ("built with mech 0.6"). A figure from an old copy of the kit does not have the newer parts and checks. If the kit has no `F.gear`, `F.facts`, `F.check` or `F.road`, the copy is old. Stop and update.
+Before you build, update this folder: run `git pull` in it. Then read `VERSION` in `kit/mech.js` and say it in your report ("built with mech 0.7"). A figure from an old copy of the kit does not have the newer parts and checks. If the kit has no `F.gear`, `F.facts`, `F.check`, `F.road` or `F.anchors`, the copy is old. Stop and update.
 
 ## 1. Intake: three questions, asked as options
 
@@ -63,11 +63,15 @@ Start from `template/scene.js`. Order: model, mechanism, covers, outer shell, pa
 - Parts that are fixed to each other go in one group and move as one. Cogs on one hub turn together. A part bolted to the frame does not move.
 - Pose comes from the model. If a spring keeps a chain tight, solve the angle that makes the chain length constant. Do not animate by guess.
 - **In motion.** The subject stays put and the surroundings move. `F.road({ length, width, x, pitch })` gives tarmac, edge lines, kerbs and seams, and `road.move(d)` scrolls it with no join. One speed in the model drives everything: move the road by `d`, and turn each wheel of radius `r` by `d / r`. Slow the road and the wheels by the same factor as the mechanism, and state the factor in the caption. Only parts that really turn go in the turning group: tyre, rim and brake disc turn, the caliper and the upright do not. Keep the motion running in every stage. Hide the road in close stages (ghost its tag to 0), and focus stage 1 on a box round the subject, not on the whole scene. Add checks: the wheel rolls without slipping, and the pattern wraps with no join. If two controls are not linked in the model (engine speed and road speed with no gearbox), keep two sliders and say so.
+- **Labels place themselves.** Write `F.label(key, { set })` and nothing more. The kit moves each pointer to a spot on its part that the reader can see, and moves it again when the stage, the camera or the motion hides it. Do not guess anchor points by hand. Give `on` or `offset` only when the audit still reports a hidden label, which means that the part itself is covered: ghost what covers it, or drop the label from that set.
 - Write `F.check(name, ok, detail)` tests that tie the model to the facts: lengths that must stay constant, clearances, order of steps, parts that must line up.
 
 ## 6. Check, then report
 
-Run `node scripts/build.mjs examples/<name>` and `--light`, then `python3 scripts/capture.py examples/<name>/index.html shots` and `python3 scripts/sheet.py shots`. Read every image.
+Work in two loops, so that you do not wait for pictures you do not need.
+
+- **Fix loop, fast.** `node scripts/build.mjs examples/<name>`, then `python3 scripts/capture.py examples/<name>/index.html shots --audit`. It takes no pictures. It prints the audit of every stage at three instants and ends with `CLEAN` or `NOT CLEAN`, in well under a minute. Repeat until it says `CLEAN`.
+- **Look loop, slow.** Then run the capture without `--audit`, build `--light` too, run `python3 scripts/sheet.py shots`, and read every image. Pictures find what the audit cannot: a shape that reads wrong, a colour that washes out, a part that hides the subject. Expect one or two rounds here, not eight.
 
 The capture prints one audit line per stage and saves every lesson step as an image. Self-review. Fix anything that fails before you report:
 - `floating` is empty in every stage. `failedChecks` is empty. No console errors.
@@ -78,7 +82,7 @@ The capture prints one audit line per stage and saves every lesson step as an im
 - For each lesson image, check that the screen shows what the step text says. A step that claims a motion must show that motion.
 - Each stage adds one thing. Each hint states something the reader can see.
 - Readout words and numbers come from the model, from the same instant.
-- In a figure that never stops, the capture catches a different instant each time. Run the capture of a moving stage three times. A label that hides in one of them needs a new anchor.
+- In a figure that never stops, one picture is one instant. The `--audit` run checks three instants of each stage for you.
 - The caption states every simplification, and both themes work.
 - Run the second check in `references/accuracy.md` on `shots/audit.json`.
 
@@ -120,7 +124,7 @@ F.ghost(tagOrParts, alpha);  F.focus(objectOrBox3, { azimuth, elevation, pad });
 F.glow(mesh, 0..1, color);  F.shadow(0..1);  F.onFrame((dt, t) => {});  F.readout(text);  F.tour(stepFn);  F.audit();
 // teaching
 F.describe({ key: { name, what, does, how, fact, src } });   // click a part or its label to see this. src: one fact id or a list
-const L = F.label(key, { on, offset, set, text, pin, box });  F.labels(set);  L.text("new text");   // pointers in two columns, or pinned text
+const L = F.label(key, { set, text, pin, box });   // the pointer finds a clear spot on the part by itself; on, offset and auto: false fix it by hand  F.labels(set);  L.text("new text");   // pointers in two columns, or pinned text
 mech.hop(a, b, t, lift);                           // a point on an arc from a to b, for packets between stations
 // accuracy
 F.facts([{ id, claim, status, source, url }]);  F.describe({ key: { name, what, does, how, fact, src: ["factId"] } });  F.check(name, ok, detail);

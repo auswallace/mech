@@ -13,6 +13,7 @@
 - Light and dark theme button. Test prompts with pass criteria in `evals/`.
 - In motion: `F.road` scrolls the surroundings under a subject that stays put, wheels roll from the same speed, and the motion carries through every stage. Example: the 2026 Formula 1 power unit.
 - A stronger selection highlight: blue tint, slow glow and outline.
+- Faster builds: label pointers place themselves on a visible spot, and `capture.py --audit` checks every stage at three instants with no pictures.
 
 ## Next
 - More parts: bearings, pumps, valves, motors, circuit boards, connectors, bolts with real heads.

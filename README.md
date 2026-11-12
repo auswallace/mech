@@ -40,6 +40,8 @@ A skill is a folder with a `SKILL.md` file that tells an AI assistant how to do 
 3. Answer three short questions: how deep, who it is for, and what matters most.
 4. The assistant looks up the facts, builds the figure, checks it with screenshots, and gives you the HTML page.
 
+A figure takes time. Expect 30 to 60 minutes for a guided lesson on a complex subject, and less for a quick look. Most of that is the assistant looking up facts and checking its own work, and a long build uses a lot of tokens.
+
 The assistant needs Node to build a figure. It needs Python, Playwright and Chrome to check one.
 
 ## Why you can trust a figure
@@ -82,6 +84,7 @@ The Sources button and the checks came in with the newer examples. The oldest on
 npm install
 node scripts/build.mjs examples/v8-suv          # writes examples/v8-suv/index.html
 node scripts/build.mjs examples/v8-suv --light  # light theme
+python3 scripts/capture.py examples/v8-suv/index.html shots --audit   # fast audit of each stage, no pictures
 python3 scripts/capture.py examples/v8-suv/index.html shots   # screenshots and audit of each stage
 python3 scripts/gif.py examples/dns/index.html docs/dns.gif "0:90"   # animated preview
 ```

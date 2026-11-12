@@ -36,6 +36,9 @@ One line per mistake found in review. Read this before you build. Add to it when
 - Ground added to the scene changes what `F.focus(null)` frames. Focus stage 1 on a box round the subject.
 - A turning wheel group must hold only what turns. A brake caliper or a fixed cover in that group orbits the axle.
 - The audit measures a turning part with a box that grows with its angle, so `extents` reads up to 1.4 times too big for it. Check the size with the part at rest.
-- When the mechanism never stops, a label anchor that is clear in one capture hides in the next. Capture a moving stage three times before you call the labels clean.
+- Label anchors placed by hand cost eight capture rounds on one figure, and still hid at some crank angles. Write `F.label(key, { set })` and let the kit place the pointer.
 - An emissive glow on a pale metal part washes out to near white. A highlight needs a tint on the base colour and an outline as well.
 - A helper cut from a scene during a refactor can still be used further down. Rebuild and read "early errors" after every edit.
+- Most fix rounds need the audit line, not the pictures. Use `capture.py --audit` while you fix, and take pictures once the audit is clean.
+- A label on a part that is fully covered has no clear spot, and no anchor can fix it. Ghost the cover or drop the label from that set.
+- A GIF palette taken from one frame loses the colours of the other stages. `gif.py` now samples frames across the clip.

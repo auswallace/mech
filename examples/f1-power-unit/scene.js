@@ -346,30 +346,10 @@
     F.check("no MGU-H in a 2026 power unit", !("mguh" in F.infoDict));
 
     // ---------- labels ----------
-    F.label("frontWing", { set: "car", on: [238, -70, 12] });
-    F.label("halo", { set: "car", on: [60, -29, 70] });
-    F.label("sidepod", { set: "car", on: [4, -64, 24] });
-    F.label("airbox", { set: "car", on: [0, -9, 88] });
-    F.label("rearWing", { set: "car", on: [-230, -30, 80] });
-    F.label("floor", { set: "car", on: [-150, -58, 6] });
-    F.label("wheel", { set: "car", on: [170, -94, 40] });
-    F.label("suspension", { set: "car", on: [-150, -40, 24] });
-    F.label("block", { set: "pu", on: [-92, -11.5, 17.5] });
-    F.label("plenum", { set: "pu" });
-    F.label("turbo", { set: "pu" });
-    F.label("mguk", { set: "pu", on: [-70, KY - 5, KZ] });
-    F.label("es", { set: "pu" });
-    F.label("ce", { set: "pu" });
-    F.label("intercooler", { set: "pu" });
-    F.label("exhaust", { set: "pu", on: [-116, 0, 34] });
-    const c1 = cyls[0];
-    F.label("piston", { set: "inside", on: c1.piston });
-    F.label("rod", { set: "inside", on: c1.rod, offset: [4, -6, 2] });
-    F.label("crank", { set: "inside", on: [-80, 0, 14] });
-    F.label("cam", { set: "inside", on: [-104, 19.8, 30] });
-    F.label("inletValve", { set: "inside", on: cyls[1].valves[0].v, offset: [0, 0, -4] });
-    F.label("exhaustValve", { set: "inside", on: cyls[4].valves[2].v });
-    F.label("geartrain", { set: "inside", on: crankGear, offset: [0, -6, 4] });
+    // no anchors by hand: the kit moves each pointer to a spot on its part that the reader can see
+    for (const k of ["frontWing", "halo", "sidepod", "airbox", "rearWing", "floor", "wheel", "suspension"]) F.label(k, { set: "car" });
+    for (const k of ["block", "plenum", "turbo", "mguk", "es", "ce", "intercooler", "exhaust"]) F.label(k, { set: "pu" });
+    for (const k of ["piston", "rod", "crank", "cam", "inletValve", "exhaustValve", "geartrain"]) F.label(k, { set: "inside" });
 
     // ---------- checks: the model against the facts ----------
     F.check("fuel energy flow reaches the 3000 MJ/h cap at 10,500 rpm", Math.abs(M.ef(10500) - 3000) < 1e-9 && M.ef(10400) < 3000, M.ef(10400).toFixed(0) + " MJ/h at 10,400 rpm");

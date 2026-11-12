@@ -33,6 +33,9 @@ Options for all parts: `tone` (`hi`, `mid`, `lo`), `lit`, `color` (hex, override
 - The road is part of the scene, so `F.focus(null)` frames the road. Focus on a `THREE.Box3` round the subject.
 - A see-through road fills the screen in a close stage and makes each frame slow. Ghost the `road` tag to 0 there.
 
+## Label anchors
+`F.anchors()` moves every hidden pointer of the active label set to a clear spot on its part and returns how many it moved. The kit calls it a few times a second and at the start of `F.audit()`, so you do not call it yourself. A label takes part when it has no `on` point and no `offset`.
+
 ## Selection
 A click on a part or its label selects its info key. Every part with that key gets a blue tint, a blue glow that breathes slowly, and a blue outline. Blue means "selected" and nothing else, so do not use that blue for a part.
 

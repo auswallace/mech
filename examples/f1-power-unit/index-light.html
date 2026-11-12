@@ -226,7 +226,7 @@ body{margin:0;background:var(--m-paper);color:var(--m-ink);font:14px/1.5 -apple-
   }
 
   // ---------- the figure ----------
-  const VERSION = "0.6";
+  const VERSION = "0.7";
   const HILITE = 0x2f8cff;   // the one colour that means "selected"
   class Figure {
     constructor(mount, { theme = "dark", style = "line", width = 640, height = 420, azimuth = 40, elevation = 32, hint = "", readout = "" } = {}) {
@@ -509,13 +509,15 @@ body{margin:0;background:var(--m-paper);color:var(--m-ink);font:14px/1.5 -apple-
       return `<b>${d.name}</b>${body}${d.fact ? `<em>${d.fact}</em>` : ""}<small>${tags.length ? tags.join(" &nbsp; ") : "<i>general</i>common knowledge, no source"}</small>`;
     }
     // label(key, { text, on, set, pin }): a pointer to a part. `on` is an object or a world point. Show a set with labels(set).
-    label(key, { text, on, set = "all", pin = false, offset, box = false } = {}) {
+    label(key, { text, on, set = "all", pin = false, offset, box = false, auto } = {}) {
       const el = document.createElement("div"); el.className = "mech-label" + (pin ? " pin" : "") + (box ? " box" : "") + (this.infoDict[key] ? " can" : ""); el.textContent = text || (this.infoDict[key] ? this.infoDict[key].name : key); el.hidden = true; this.over.appendChild(el);
       el.addEventListener("pointerdown", (e) => e.stopPropagation());
       el.addEventListener("click", (e) => { e.stopPropagation(); if (!this.infoDict[key]) return; this.touch(); if (this.pickHandler) this.pickHandler(key); else this.select(this.selected === key ? null : key); });
       const obj = Array.isArray(on) ? null : on || this.find(key); let local = null, probe = null;
       if (obj) { this.root.updateMatrixWorld(true); const c = new T.Box3().setFromObject(obj).getCenter(new T.Vector3()); if (offset) c.add(new T.Vector3(...offset)); local = obj.worldToLocal(c); obj.traverse((m) => { if (!probe && m.isMesh) probe = m; }); }
-      const L = { key, el, obj, local, probe, world: Array.isArray(on) ? new T.Vector3(...on) : null, set, pin, text(t) { el.textContent = t; L.w = 0; } };
+      // auto: the kit may move the pointer to a spot on the part that the reader can see. A point or an offset from the author stays where it is.
+      const L = { key, el, obj, local, probe, world: Array.isArray(on) ? new T.Vector3(...on) : null, set, pin, scope: on && !Array.isArray(on) ? on : null,
+        auto: auto !== undefined ? !!auto : !pin && !!obj && !offset, text(t) { el.textContent = t; L.w = 0; } };
       this.labelList.push(L); return L;
     }
     labels(set) { this.labelSet = set || null; this.run(); }
@@ -598,7 +600,48 @@ body{margin:0;background:var(--m-paper);color:var(--m-ink);font:14px/1.5 -apple-
       if (this.style === "real") { em.opacity = u.alpha < 0.6 && u.alpha > 0.004 ? 0.34 : 0; u.edges.visible = em.opacity > 0; }
       else { em.opacity = em.userData.base * Math.min(1, u.alpha * 2.2 + (u.alpha > 0.004 ? 0.12 : 0)); u.edges.visible = true; }
     }
+    // ---- label anchors that find a clear view ----
+    #solid() { return this.parts.filter((m) => m.isMesh && m.visible && m.userData.alpha > 0.6 && m.userData.tag !== "flow"); }
+    // what is in front of world point w, seen from the camera? null when the view to it is clear, or the part of the same key is what you see.
+    #blocker(key, w, solid) {
+      const ray = (this.ray ||= new T.Raycaster()), ndc = w.clone().project(this.camera);
+      ray.setFromCamera(new T.Vector2(ndc.x, ndc.y), this.camera);
+      const hit = ray.intersectObjects(solid, false)[0];
+      return hit && this.infoOf(hit.object) !== key && hit.distance < ray.ray.origin.distanceTo(w) - 1 ? hit.object : null;
+    }
+    #labelOn(L) { return !L.pin && this.labelSet && (L.set === this.labelSet || L.set === "all") && !(L.probe && L.probe.userData.alpha <= 0.3); }
+    // move each hidden pointer to the clear spot on its part that is nearest to where it was
+    anchors() {
+      const solid = this.#solid(), v = new T.Vector3(), c = new T.Vector3(); let moved = 0;
+      this.root.updateMatrixWorld(true);
+      for (const L of this.labelList) {
+        if (!L.auto || !L.obj) continue;
+        // the part it points at is ghosted away: point at another part of the same key that is still there
+        if (!L.scope && L.probe && L.probe.userData.alphaTo <= 0.3) {
+          const m = this.parts.find((q) => q.isMesh && q.userData.alphaTo > 0.3 && this.infoOf(q) === L.key);
+          if (m) { m.geometry.computeBoundingBox(); L.probe = L.obj = m; L.local = m.geometry.boundingBox.getCenter(new T.Vector3()); }
+        }
+        if (!this.#labelOn(L)) continue;
+        L.obj.localToWorld(v.copy(L.local));
+        if (!this.#blocker(L.key, v, solid)) continue;
+        const from = v.clone().project(this.camera), meshes = [];
+        if (L.scope) L.scope.traverse((m) => m.isMesh && meshes.push(m)); else for (const m of this.parts) if (m.isMesh && this.infoOf(m) === L.key) meshes.push(m);
+        let best = null, bd = Infinity;
+        for (const m of meshes) {
+          if (!m.visible || m.userData.alpha <= 0.3) continue;
+          const pos = m.geometry.attributes.position, step = Math.max(1, Math.ceil(pos.count / 24));
+          for (let i = 0; i < pos.count; i += step) {
+            m.localToWorld(c.fromBufferAttribute(pos, i));
+            const q = c.clone().project(this.camera), d = (q.x - from.x) ** 2 + (q.y - from.y) ** 2;
+            if (d < bd && Math.abs(q.x) < 0.98 && Math.abs(q.y) < 0.98 && !this.#blocker(L.key, c, solid)) { bd = d; best = { m, p: c.clone() }; }
+          }
+        }
+        if (best) { L.obj = best.m; L.local = best.m.worldToLocal(best.p); moved++; }
+      }
+      return moved;
+    }
     #teach(dt) {
+      if (this.labelSet && (this.anchorT = (this.anchorT || 0) + dt) > 0.4) { this.anchorT = 0; this.anchors(); }
       // highlight the selected parts: a blue tint and glow that breathes slowly, plus a blue outline
       const sel = this.selected, k = this.reduced ? 0.42 : 0.42 + 0.14 * Math.sin(this.time * 3.2);
       for (const p of this.parts) { if (!p.isMesh) continue; const u = p.userData; if (u.ik === undefined) u.ik = this.infoOf(p); const on = !!sel && u.ik === sel; if (on) p.material.emissive.setHex(HILITE).multiplyScalar(k); else if (u.hl) p.material.emissive.setHex(0); if (on !== !!u.hl) { u.hl = on; this.#edgeLook(p); if (!u.led) { if (on) { u.c0 = p.material.color.getHex(); p.material.color.lerp(new T.Color(HILITE), 0.85); } else if (u.c0 !== undefined) p.material.color.setHex(u.c0); } } }
@@ -641,12 +684,13 @@ body{margin:0;background:var(--m-paper);color:var(--m-ink);font:14px/1.5 -apple-
       const ext = {}; ms.forEach((m, i) => { const t = m.userData.tag || "untagged"; (ext[t] = ext[t] || new T.Box3()).union(boxes[i]); });
       const extents = {}; for (const t in ext) { const z = ext[t].getSize(new T.Vector3()); extents[t] = [z.x, z.y, z.z].map((v) => Math.round(v)); }
       // labels of the active set whose part is behind something else
-      const hiddenLabels = [], ray = new T.Raycaster(), v = new T.Vector3(), solid = ms.filter((m) => m.userData.alpha > 0.6 && m.userData.tag !== "flow");
+      this.anchors();
+      const hiddenLabels = [], v = new T.Vector3(), solid = this.#solid();
       for (const L of this.labelList) {
-        if (L.pin || !this.labelSet || (L.set !== this.labelSet && L.set !== "all") || (L.probe && L.probe.userData.alpha <= 0.3)) continue;
+        if (!this.#labelOn(L)) continue;
         if (L.obj) L.obj.localToWorld(v.copy(L.local)); else v.copy(L.world);
-        const w = v.clone(), ndc = v.project(this.camera); ray.setFromCamera(new T.Vector2(ndc.x, ndc.y), this.camera);
-        const hit = ray.intersectObjects(solid, false)[0]; if (hit && this.infoOf(hit.object) !== L.key && hit.distance < ray.ray.origin.distanceTo(w) - 1) hiddenLabels.push(L.el.textContent + " (behind " + (this.infoOf(hit.object) || hit.object.userData.tag || "a part") + ")");
+        const hit = this.#blocker(L.key, v, solid);
+        if (hit) hiddenLabels.push(L.el.textContent + " (behind " + (this.infoOf(hit) || hit.userData.tag || "a part") + ")");
       }
       const F = this.factList || [], ids = new Set(F.map((f) => f.id));
       const facts = { total: F.length, sourced: F.filter((f) => f.status === "sourced").length, noSource: F.filter((f) => f.status === "sourced" && !f.url).map((f) => f.id), unlinked: Object.keys(this.infoDict).filter((k) => { const d = this.infoDict[k], l = [].concat(d.src || []); return (d.fact && !l.length) || l.some((i) => !ids.has(i)); }), general: Object.keys(this.infoDict).filter((k) => ![].concat(this.infoDict[k].src || []).length) };
@@ -1100,30 +1144,10 @@ body{margin:0;background:var(--m-paper);color:var(--m-ink);font:14px/1.5 -apple-
     F.check("no MGU-H in a 2026 power unit", !("mguh" in F.infoDict));
 
     // ---------- labels ----------
-    F.label("frontWing", { set: "car", on: [238, -70, 12] });
-    F.label("halo", { set: "car", on: [60, -29, 70] });
-    F.label("sidepod", { set: "car", on: [4, -64, 24] });
-    F.label("airbox", { set: "car", on: [0, -9, 88] });
-    F.label("rearWing", { set: "car", on: [-230, -30, 80] });
-    F.label("floor", { set: "car", on: [-150, -58, 6] });
-    F.label("wheel", { set: "car", on: [170, -94, 40] });
-    F.label("suspension", { set: "car", on: [-150, -40, 24] });
-    F.label("block", { set: "pu", on: [-92, -11.5, 17.5] });
-    F.label("plenum", { set: "pu" });
-    F.label("turbo", { set: "pu" });
-    F.label("mguk", { set: "pu", on: [-70, KY - 5, KZ] });
-    F.label("es", { set: "pu" });
-    F.label("ce", { set: "pu" });
-    F.label("intercooler", { set: "pu" });
-    F.label("exhaust", { set: "pu", on: [-116, 0, 34] });
-    const c1 = cyls[0];
-    F.label("piston", { set: "inside", on: c1.piston });
-    F.label("rod", { set: "inside", on: c1.rod, offset: [4, -6, 2] });
-    F.label("crank", { set: "inside", on: [-80, 0, 14] });
-    F.label("cam", { set: "inside", on: [-104, 19.8, 30] });
-    F.label("inletValve", { set: "inside", on: cyls[1].valves[0].v, offset: [0, 0, -4] });
-    F.label("exhaustValve", { set: "inside", on: cyls[4].valves[2].v });
-    F.label("geartrain", { set: "inside", on: crankGear, offset: [0, -6, 4] });
+    // no anchors by hand: the kit moves each pointer to a spot on its part that the reader can see
+    for (const k of ["frontWing", "halo", "sidepod", "airbox", "rearWing", "floor", "wheel", "suspension"]) F.label(k, { set: "car" });
+    for (const k of ["block", "plenum", "turbo", "mguk", "es", "ce", "intercooler", "exhaust"]) F.label(k, { set: "pu" });
+    for (const k of ["piston", "rod", "crank", "cam", "inletValve", "exhaustValve", "geartrain"]) F.label(k, { set: "inside" });
 
     // ---------- checks: the model against the facts ----------
     F.check("fuel energy flow reaches the 3000 MJ/h cap at 10,500 rpm", Math.abs(M.ef(10500) - 3000) < 1e-9 && M.ef(10400) < 3000, M.ef(10400).toFixed(0) + " MJ/h at 10,400 rpm");

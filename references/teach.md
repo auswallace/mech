@@ -14,7 +14,9 @@
 - Write for the audience from intake. "New to this": no jargon without a definition. "Expert": add the number.
 
 ## Labels
-- `F.label(key, { set })` points at the first part with that key. Pass `on: mesh` or `on: [x, y, z]` to choose the anchor.
+- `F.label(key, { set })` points at a part with that key. The kit keeps the pointer on a spot that the reader can see: it tests points on the part against the camera a few times a second, and takes the clear one nearest to where the pointer was. If the first part with the key is ghosted away, it moves to one that is still there.
+- `on: mesh` limits the pointer to that one mesh, and it still finds a clear spot on it. `on: [x, y, z]` or `offset` fixes the pointer, and the kit does not move it. `auto: false` turns the search off.
+- A label that the audit still reports as hidden has no clear spot at all. Ghost the part that covers it, change the view, or take the label out of that set.
 - Labels sit in two columns at the stage edges with leader lines. Keep each set to 8 labels or fewer.
 - `pin: true` puts short text at the anchor with no leader. Use it for values and names that belong to one spot (a word on a token, a percentage on a bar).
 - One set per stage: `F.labels(set)`. A label hides when its part is ghosted below 0.3.
