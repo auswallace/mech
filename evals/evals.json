@@ -86,6 +86,27 @@
     "A collision case is shown.",
     "Checks cover: the same key always lands in the same bucket."
    ]
+  },
+  {
+   "id": 6,
+   "type": "machine, in motion",
+   "prompt": "Use the mech skill. Show me how a Formula One car is built.",
+   "intake": [
+    "Quick look",
+    "Some background",
+    "How the power unit works"
+   ],
+   "pass": [
+    "The report says In motion is on, without being asked, because the subject is a vehicle.",
+    "Stage 1 is recognisable as a single seater on a road. The road scrolls and all four wheels roll.",
+    "Brake calipers do not turn with the wheels.",
+    "Road speed and wheel speed come from one value in the model, slowed by the same factor as the engine. The caption states the factor.",
+    "The motion keeps running in every stage. The road is hidden in the close stages.",
+    "The power unit matches the rules of the current season, from a cited source. No part that the rules removed is in the scene.",
+    "Readout numbers are worked out from sourced formulas, not typed in.",
+    "A click on a part gives a clear blue highlight with an outline.",
+    "Audit: no floating parts, no hidden labels over three captures of a moving stage, no failed checks, a check for rolling without slipping and a check that the road wraps with no join."
+   ]
   }
  ]
 }

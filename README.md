@@ -24,6 +24,7 @@ Each picture links to the live figure. Open one, step through the stages, and cl
 ## Examples
 
 - `examples/v8-suv`: a twin-turbo V8 in a performance SUV. Six stages from the whole car to the pistons and valves, a lesson on the four strokes, air and exhaust flow, and a quiz. The engine follows the published layout of a 4.0 litre, 90 degree, twin-turbo V8. The body is an original, generic shell.
+- `examples/f1-power-unit`: the 2026 Formula 1 power unit in a generic single seater that drives. The road scrolls and the wheels roll from one speed slider, and everything keeps running as you step in. Three stages: the car, the power unit, inside the V6. The readout works out fuel energy flow, engine power, electric power and the electric share from the regulation formulas. Split crank pins give the even 120 degree firing interval. It carries 30 facts, 22 of them sourced, and 20 model checks.
 - `examples/tower`: the structure of a 20-storey office tower. Slabs, beams, columns, core, lifts and piled foundation, a slider that builds it storey by storey, and the paths of weight and wind.
 - `examples/derailleur`: how a rear derailleur shifts gears. Toothed cogs, a chain that follows a solved path, a parallelogram that swings, and a cage whose angle keeps the chain length constant. It carries a sourced facts list and 33 model checks.
 - `examples/dns`: how DNS finds the address of a website. Five stations, eight readable messages, a cache that fills and expires.

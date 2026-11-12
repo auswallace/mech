@@ -11,7 +11,7 @@ A figure is a small true model of a thing that the reader can step into: whole o
 The core is real 3D with an isometric camera. Depth, orbit, ghosting and exploded views come from the renderer. You spend your effort on the model, the parts and the teaching.
 
 ## 0. Use the current skill
-Before you build, update this folder: run `git pull` in it. Then read `VERSION` in `kit/mech.js` and say it in your report ("built with mech 0.5"). A figure from an old copy of the kit does not have the newer parts and checks. If the kit has no `F.gear`, `F.facts` or `F.check`, the copy is old. Stop and update.
+Before you build, update this folder: run `git pull` in it. Then read `VERSION` in `kit/mech.js` and say it in your report ("built with mech 0.6"). A figure from an old copy of the kit does not have the newer parts and checks. If the kit has no `F.gear`, `F.facts`, `F.check` or `F.road`, the copy is old. Stop and update.
 
 ## 1. Intake: three questions, asked as options
 
@@ -20,6 +20,8 @@ Infer first. Ask only what the request does not already answer. Ask at most thre
 1. **How deep?** Quick look (3 stages and labels) / **Guided lesson** (default: stages, labels, click to learn, lesson) / Full teardown (adds apart view and flow). Add a quiz only when the reader asks for one.
 2. **Who is it for?** **New to this** (default: plain words, analogies) / Some background (correct terms) / Expert (real numbers, edge cases).
 3. **What matters most?** Write 2 to 4 options for this subject. Example for an engine: how it makes power / how the turbos work / where everything is. This sets what the figure centres on.
+
+**In motion** is an add-on, like the quiz. Use it when the subject travels or does its work while it moves: a car, a bike, a train, a conveyor. Stage 1 then shows the subject at work in its surroundings (a car on a road that scrolls, with wheels that roll), and it keeps running in every later stage. Turn it on by default for a vehicle and say so in the one line. Offer it as an option when it is less clear. Leave it out for things that stand still. Section 5 has the rules.
 
 Do not ask about look or size. Pick them and say so: "Guided lesson, for someone new, centred on how it moves heat. About 150 parts, realistic look."
 
@@ -35,7 +37,7 @@ Show both to the user before you build. They are cheap to fix. A built figure is
 
 Read `references/subjects.md`. It gives the stage pattern, the motion and the closest example for each type:
 
-- **Machine** (engine, pump, lock): `examples/v8-suv`
+- **Machine** (engine, pump, lock): `examples/v8-suv`. In motion: `examples/f1-power-unit`
 - **Structure** (building, bridge, ship hull): `examples/tower`
 - **Abstract system** (language model, algorithm): `examples/llm`
 - **Conversation** (DNS, TLS, any protocol or handshake between parties): `examples/dns`
@@ -60,6 +62,7 @@ Start from `template/scene.js`. Order: model, mechanism, covers, outer shell, pa
 - Use the real parts in the kit. `F.gear` for anything with teeth, `mech.wrapPath` and `F.chain` for a chain or belt round wheels, `F.link` for bars and rods between two moving points, `F.spring` for coils. Do not fake them with discs and loose boxes.
 - Parts that are fixed to each other go in one group and move as one. Cogs on one hub turn together. A part bolted to the frame does not move.
 - Pose comes from the model. If a spring keeps a chain tight, solve the angle that makes the chain length constant. Do not animate by guess.
+- **In motion.** The subject stays put and the surroundings move. `F.road({ length, width, x, pitch })` gives tarmac, edge lines, kerbs and seams, and `road.move(d)` scrolls it with no join. One speed in the model drives everything: move the road by `d`, and turn each wheel of radius `r` by `d / r`. Slow the road and the wheels by the same factor as the mechanism, and state the factor in the caption. Only parts that really turn go in the turning group: tyre, rim and brake disc turn, the caliper and the upright do not. Keep the motion running in every stage. Hide the road in close stages (ghost its tag to 0), and focus stage 1 on a box round the subject, not on the whole scene. Add checks: the wheel rolls without slipping, and the pattern wraps with no join. If two controls are not linked in the model (engine speed and road speed with no gearbox), keep two sliders and say so.
 - Write `F.check(name, ok, detail)` tests that tie the model to the facts: lengths that must stay constant, clearances, order of steps, parts that must line up.
 
 ## 6. Check, then report
@@ -75,6 +78,7 @@ The capture prints one audit line per stage and saves every lesson step as an im
 - For each lesson image, check that the screen shows what the step text says. A step that claims a motion must show that motion.
 - Each stage adds one thing. Each hint states something the reader can see.
 - Readout words and numbers come from the model, from the same instant.
+- In a figure that never stops, the capture catches a different instant each time. Run the capture of a moving stage three times. A label that hides in one of them needs a new anchor.
 - The caption states every simplification, and both themes work.
 - Run the second check in `references/accuracy.md` on `shots/audit.json`.
 
@@ -121,6 +125,7 @@ mech.hop(a, b, t, lift);                           // a point on an arc from a t
 // accuracy
 F.facts([{ id, claim, status, source, url }]);  F.describe({ key: { name, what, does, how, fact, src: ["factId"] } });  F.check(name, ok, detail);
 F.flow(points, { color, count, speed, r, group, set });  F.flows(set);
+const road = F.road({ length, width, x, pitch });  road.move(d);   // surroundings that scroll under a subject that stays put; road.wrap, road.span
 const lesson = F.lesson([{ title, text, go() }], { onClose });  lesson.open(0);
 const quiz = F.quiz([{ ask, key, also }]);  quiz.start();
 mech.card("#fig", { fig, title, keys, caption });

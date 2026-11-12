@@ -10,7 +10,7 @@
 - `fact` is optional: one number or one hard fact. `src` is one fact id or a list. The panel shows a tag for each source with its status (sourced, worked out, assumed, illustrative). With no `src`, the panel says "common knowledge, no source".
 - The old form `role` still works, but it gives one block of text. Use the three lines for new figures.
 - The panel opens under the figure and its controls, so it does not cover the parts. The page scrolls to it if it is out of view.
-- A click on a part, or on its label, shows its panel and highlights every part with the same key. A click on empty space clears it.
+- A click on a part, or on its label, shows its panel and highlights every part with the same key: a blue tint, a slow glow and a blue outline. A click on empty space clears it.
 - Write for the audience from intake. "New to this": no jargon without a definition. "Expert": add the number.
 
 ## Labels
