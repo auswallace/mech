@@ -226,7 +226,8 @@ body{margin:0;background:var(--m-paper);color:var(--m-ink);font:14px/1.5 -apple-
   }
 
   // ---------- the figure ----------
-  const VERSION = "0.5";
+  const VERSION = "0.6";
+  const HILITE = 0x2f8cff;   // the one colour that means "selected"
   class Figure {
     constructor(mount, { theme = "dark", style = "line", width = 640, height = 420, azimuth = 40, elevation = 32, hint = "", readout = "" } = {}) {
       this.mount = typeof mount === "string" ? document.querySelector(mount) : mount;
@@ -348,6 +349,7 @@ body{margin:0;background:var(--m-paper);color:var(--m-ink);font:14px/1.5 -apple-
         const em = new T.LineBasicMaterial({ color: edgeTone === "lo" ? this.T.edgeLo : lit ? this.T.lit : tone === "lo" ? this.T.edgeLo : this.T.edge, transparent: true, opacity: tone === "lo" ? 0.7 : 0.9 });
         em.userData.base = em.opacity;
         if (real) { em.color.set(this.T.edge); em.opacity = 0; }
+        em.userData.color = em.color.getHex();
         em.clippingPlanes = this.cut ? [this.cut] : [];
         const lines = new T.LineSegments(eg, em);
         lines.renderOrder = 1; lines.visible = !real;
@@ -568,13 +570,38 @@ body{margin:0;background:var(--m-paper);color:var(--m-ink);font:14px/1.5 -apple-
     }
     // ---- accuracy ----
     // facts([{ id, claim, source, url, status }]): status is "sourced", "model" (derived), "assumed" (typical value) or "illustrative" (made up).
+    // road({ length, width, x, pitch }): tarmac, edge lines, kerbs and seams under a subject that stays put.
+    // move(d) scrolls it by d and wraps with no join. Roll a wheel of radius r by d / r for the same d.
+    road({ length = 800, width = 360, x = 0, pitch = 60, kerbs = true, lines = true, seams = true, tag = "road" } = {}) {
+      const real = this.style === "real", o = { tag, edges: false, shadow: false, mat: "rubber" };
+      const base = this.group({ at: [x, 0, 0] }), track = this.group({ group: base }), wrap = 2 * pitch;
+      const slab = this.box({ w: length, d: width, h: 2 }, Object.assign({}, o, { group: base, at: [0, 0, -2.02] }, real ? { color: 0x0c0e12 } : { tone: "lo" }));
+      if (real) slab.material.envMapIntensity = 0.12;   // a flat top faces the key light and the studio, so it needs a very dark base to read as tarmac
+      if (lines) for (const s of [-1, 1]) this.box({ w: length, d: 5, h: 0.3 }, Object.assign({}, o, { group: base, color: 0xdadada, at: [0, s * (width / 2 - 38), -0.02] }));
+      const hi = Math.floor((length / 2 - pitch / 2) / pitch), lo = -Math.floor((length / 2 - pitch / 2 - wrap) / pitch);
+      for (let i = lo; i <= hi; i++) {
+        if (kerbs) for (const s of [-1, 1]) this.box({ w: pitch, d: 22, h: 1.8, r: 0.4 }, Object.assign({}, o, { group: track, color: i % 2 ? 0xcfcfcf : 0x8e2a1f, at: [i * pitch, s * (width / 2 - 18), -0.02] }));
+        if (seams && i % 2 === 0) this.box({ w: 3, d: width - 70, h: 0.2 }, Object.assign({}, o, { group: track, color: 0x3c4149, at: [i * pitch, 0, -0.02] }));
+      }
+      return { group: base, track, slab, pitch, wrap, span: [lo * pitch - pitch / 2 - wrap, hi * pitch + pitch / 2], length,
+        move(d) { track.position.x = -((((-track.position.x + d) % wrap) + wrap) % wrap); } };
+    }
     facts(list) { this.factList = (this.factList || []).concat(list); }
     // check(name, ok, detail): a test that the model agrees with the facts. Failures show in audit().
     check(name, ok, detail = "") { (this.checks = this.checks || []).push({ name, ok: !!ok, detail: String(detail) }); }
+    // edge lines of one part: a bright outline when selected, faint on a ghost, the normal look otherwise
+    #edgeLook(p) {
+      const u = p.userData; if (!u.edges) return;
+      const em = u.edges.material;
+      if (u.hl && u.alpha > 0.004) { em.color.setHex(HILITE); em.opacity = 0.95; u.edges.visible = true; return; }
+      em.color.setHex(em.userData.color);
+      if (this.style === "real") { em.opacity = u.alpha < 0.6 && u.alpha > 0.004 ? 0.34 : 0; u.edges.visible = em.opacity > 0; }
+      else { em.opacity = em.userData.base * Math.min(1, u.alpha * 2.2 + (u.alpha > 0.004 ? 0.12 : 0)); u.edges.visible = true; }
+    }
     #teach(dt) {
-      // highlight the selected parts
-      const sel = this.selected;
-      for (const p of this.parts) { if (!p.isMesh) continue; const u = p.userData; if (u.ik === undefined) u.ik = this.infoOf(p); const on = !!sel && u.ik === sel; if (on) p.material.emissive.setHex(0x2f8cff).multiplyScalar(0.55); else if (u.hl) p.material.emissive.setHex(0); u.hl = on; }
+      // highlight the selected parts: a blue tint and glow that breathes slowly, plus a blue outline
+      const sel = this.selected, k = this.reduced ? 0.42 : 0.42 + 0.14 * Math.sin(this.time * 3.2);
+      for (const p of this.parts) { if (!p.isMesh) continue; const u = p.userData; if (u.ik === undefined) u.ik = this.infoOf(p); const on = !!sel && u.ik === sel; if (on) p.material.emissive.setHex(HILITE).multiplyScalar(k); else if (u.hl) p.material.emissive.setHex(0); if (on !== !!u.hl) { u.hl = on; this.#edgeLook(p); if (!u.led) { if (on) { u.c0 = p.material.color.getHex(); p.material.color.lerp(new T.Color(HILITE), 0.85); } else if (u.c0 !== undefined) p.material.color.setHex(u.c0); } } }
       // flows
       for (const f of this.flowList) { const on = this.flowSet && (f.set === this.flowSet || f.set === "all"); f.t = ((f.t || 0) + dt * f.speed * f.rate) % 1; f.dots.forEach((d, i) => { d.visible = !!on; if (on) d.position.copy(f.curve.getPointAt((f.t + i / f.dots.length) % 1)); }); }
       // labels: two columns with leader lines, or pinned at the part
@@ -647,11 +674,7 @@ body{margin:0;background:var(--m-paper);color:var(--m-ink);font:14px/1.5 -apple-
           const tr = u.alpha < 0.999; if (p.material.transparent !== tr) { p.material.transparent = tr; p.material.needsUpdate = true; }
           p.material.opacity = u.alpha; p.material.depthWrite = u.alpha > 0.95; p.castShadow = u.shadow && u.alpha > 0.6;
           p.visible = u.alpha > 0.004;
-          if (u.edges) {
-            const em = u.edges.material;
-            if (this.style === "real") { em.opacity = u.alpha < 0.6 && u.alpha > 0.004 ? 0.34 : 0; u.edges.visible = em.opacity > 0; }
-            else em.opacity = em.userData.base * Math.min(1, u.alpha * 2.2 + (u.alpha > 0.004 ? 0.12 : 0));
-          }
+          this.#edgeLook(p);
         }
       }
       for (const f of this.updaters) f(dt, this.time);

@@ -9,7 +9,8 @@ Things with moving parts: engines, pumps, locks, watches, printers.
 - **Motion:** the mechanism runs all the time. A control changes speed or load.
 - **Lesson:** one cycle, one step at a time, on one unit (one cylinder, one tooth, one valve).
 - **Flow:** what goes in and what comes out (air, fuel, water, current).
-- **Examples:** `examples/v8-suv` (large), `examples/derailleur` (small, with real linkage and chain kinematics).
+- **In motion (add-on):** for a machine that travels, stage 1 shows it at work: a road that scrolls and wheels that roll, from one speed in the model. It keeps running in every stage. See `examples/f1-power-unit`.
+- **Examples:** `examples/v8-suv` (large), `examples/derailleur` (small, with real linkage and chain kinematics), `examples/f1-power-unit` (in motion, with readouts worked out from regulation formulas).
 
 ## Structure
 Things that stand: buildings, bridges, towers, hulls, furniture.
