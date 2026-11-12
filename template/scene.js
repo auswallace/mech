@@ -21,8 +21,8 @@
 
     // ---------- 3. what each part is ----------
     F.describe({
-      base: { name: "Base", role: "What it does, in one plain sentence." },
-      part: { name: "Part", role: "What it does, and why it matters.", fact: "One true number.", src: "example" },
+      base: { name: "Base", what: "What it is, in one plain sentence.", does: "What it does.", how: "How it does it." },
+      part: { name: "Part", what: "What it is.", does: "What it does.", how: "How it does it.", fact: "One true number.", src: "example" },
     });
     F.label("base", { set: "whole" }); F.label("part", { set: "whole" });
 

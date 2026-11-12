@@ -2,8 +2,15 @@
 
 ## Part info
 - Give a part or a group `info: "key"`. Children of a group inherit the key.
-- `F.describe({ key: { name, role, fact } })`. `name` is 1 to 4 words. `role` is one or two plain sentences: what it does and why it matters. `fact` is optional and must be true and sourced.
-- A click on a part shows its panel and highlights every part with the same key. A click on empty space clears it.
+- `F.describe({ key: { name, what, does, how, fact, src } })`. `name` is 1 to 4 words. The panel shows three fixed lines:
+  - `what`: what it is. One plain sentence.
+  - `does`: what it does. One sentence.
+  - `how`: how it does it. One or two sentences. Leave it out if you cannot say it truthfully.
+- One claim for each sentence. Write it so plain that nobody can argue with it. If a sentence needs a source and has none, cut it.
+- `fact` is optional: one number or one hard fact. `src` is one fact id or a list. The panel shows a tag for each source with its status (sourced, worked out, assumed, illustrative). With no `src`, the panel says "common knowledge, no source".
+- The old form `role` still works, but it gives one block of text. Use the three lines for new figures.
+- The panel opens under the figure and its controls, so it does not cover the parts. The page scrolls to it if it is out of view.
+- A click on a part, or on its label, shows its panel and highlights every part with the same key. A click on empty space clears it.
 - Write for the audience from intake. "New to this": no jargon without a definition. "Expert": add the number.
 
 ## Labels

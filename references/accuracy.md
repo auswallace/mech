@@ -22,7 +22,7 @@ Status:
 
 Rules:
 - A number from memory is `assumed`, not `sourced`.
-- A `fact` line in `F.describe` must carry `src: "id"`.
+- A `fact` line in `F.describe` must carry `src`. `src` is one fact id or a list, and it covers the `what`, `does` and `how` lines too. The part panel shows the status of each source to the reader.
 - Part roles (what a part does) are general knowledge. Keep them plain and uncontroversial. If a role contains a number or a strong claim ("breaks first in a crash"), make it a fact with a source or cut it.
 - The card shows a Sources button when the list is not empty. The caption states what is illustrative.
 

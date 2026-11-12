@@ -175,7 +175,7 @@
   }
 
   // ---------- the figure ----------
-  const VERSION = "0.4";
+  const VERSION = "0.5";
   class Figure {
     constructor(mount, { theme = "dark", style = "line", width = 640, height = 420, azimuth = 40, elevation = 32, hint = "", readout = "" } = {}) {
       this.mount = typeof mount === "string" ? document.querySelector(mount) : mount;
@@ -204,7 +204,7 @@
       this.stage = m.querySelector(".mech-stage");
       this.canvas = m.querySelector("canvas");
       this.readoutEl = m.querySelector(".mech-readout");
-      this.over = m.querySelector(".mech-over"); this.leaders = m.querySelector(".mech-leaders"); this.panel = m.querySelector(".mech-panel");
+      this.over = m.querySelector(".mech-over"); this.leaders = m.querySelector(".mech-leaders"); this.panel = m.querySelector(".mech-panel"); this.stage.after(this.panel);
       this.infoDict = {}; this.labelList = []; this.labelSet = null; this.flowList = []; this.flowSet = null; this.selected = null; this.pickHandler = null;
     }
     #scene() {
@@ -441,13 +441,25 @@
     select(key) {
       this.selected = key && this.infoDict[key] ? key : null;
       const d = this.selected && this.infoDict[this.selected];
-      if (!this.pickHandler) this.say(d ? `<b>${d.name}</b><span>${d.role || ""}</span>${d.fact ? `<em>${d.fact}</em>` : ""}` : "");
+      if (!this.pickHandler) { this.say(d ? this.infoHtml(d) : ""); if (d && this.panel.scrollIntoView) this.panel.scrollIntoView({ block: "nearest", behavior: "smooth" }); }
       this.run();
     }
     say(html) { this.panel.innerHTML = html; this.panel.hidden = !html; }
+    // The part panel. New form: what (what it is), does (what it does), how (how it does it), one short sentence each.
+    // Old form: role. src is one fact id or a list. Every source shows as a tag with its status, so the reader sees what is sourced.
+    infoHtml(d) {
+      const row = (head, text) => (text ? `<span class="row"><u>${head}</u>${text}</span>` : "");
+      const body = d.what || d.does || d.how ? row("What it is", d.what) + row("What it does", d.does) + row("How", d.how) : `<span>${d.role || ""}</span>`;
+      const word = { sourced: "sourced", model: "worked out", assumed: "assumed", illustrative: "illustrative" }, F = this.factList || [];
+      const tags = [].concat(d.src || []).map((id) => F.find((f) => f.id === id)).filter(Boolean).map((f) => `<i class="s-${f.status}">${word[f.status] || f.status}</i>${f.status === "sourced" ? f.source || "" : f.status === "model" ? "from the model" : f.status === "assumed" ? "typical, not looked up" : "made for this figure"}`);
+      for (let i = tags.length - 1; i > 0; i--) if (tags.indexOf(tags[i]) < i) tags.splice(i, 1);   // one tag for each source
+      return `<b>${d.name}</b>${body}${d.fact ? `<em>${d.fact}</em>` : ""}<small>${tags.length ? tags.join(" &nbsp; ") : "<i>general</i>common knowledge, no source"}</small>`;
+    }
     // label(key, { text, on, set, pin }): a pointer to a part. `on` is an object or a world point. Show a set with labels(set).
     label(key, { text, on, set = "all", pin = false, offset, box = false } = {}) {
-      const el = document.createElement("div"); el.className = "mech-label" + (pin ? " pin" : "") + (box ? " box" : ""); el.textContent = text || (this.infoDict[key] ? this.infoDict[key].name : key); el.hidden = true; this.over.appendChild(el);
+      const el = document.createElement("div"); el.className = "mech-label" + (pin ? " pin" : "") + (box ? " box" : "") + (this.infoDict[key] ? " can" : ""); el.textContent = text || (this.infoDict[key] ? this.infoDict[key].name : key); el.hidden = true; this.over.appendChild(el);
+      el.addEventListener("pointerdown", (e) => e.stopPropagation());
+      el.addEventListener("click", (e) => { e.stopPropagation(); if (!this.infoDict[key]) return; this.touch(); if (this.pickHandler) this.pickHandler(key); else this.select(this.selected === key ? null : key); });
       const obj = Array.isArray(on) ? null : on || this.find(key); let local = null, probe = null;
       if (obj) { this.root.updateMatrixWorld(true); const c = new T.Box3().setFromObject(obj).getCenter(new T.Vector3()); if (offset) c.add(new T.Vector3(...offset)); local = obj.worldToLocal(c); obj.traverse((m) => { if (!probe && m.isMesh) probe = m; }); }
       const L = { key, el, obj, local, probe, world: Array.isArray(on) ? new T.Vector3(...on) : null, set, pin, text(t) { el.textContent = t; L.w = 0; } };
@@ -479,7 +491,7 @@
       const stop = () => { this.pickHandler = null; this.say(""); onEnd && onEnd(); };
       return { stop, start: () => { i = 0; score = 0; lock = false; this.select(null); this.pickHandler = (key) => {
         if (lock) return; const q = questions[i], d = this.infoDict[key];
-        if (key === q.key || (q.also || []).includes(key)) { score++; lock = true; this.selected = key; this.say(`<b>Correct</b><span>${d.name}: ${d.role || ""}</span>`); }
+        if (key === q.key || (q.also || []).includes(key)) { score++; lock = true; this.selected = key; this.say(`<b>Correct</b><span>${d.name}: ${d.does || d.role || ""}</span>`); }
         else { this.say(`<b>Question ${i + 1} of ${questions.length}</b><span>${q.ask}</span><em>${d ? "That is the " + d.name.toLowerCase() + ". Try again." : "Click a part."}</em>`); if (!d) return; lock = false; return; }
         setTimeout(() => { lock = false; this.selected = null; i++; if (i < questions.length) ask(); else { this.pickHandler = null; this.say(`<b>Done</b><span>${score} of ${questions.length} correct.</span>`); onEnd && onEnd(); } }, 1500);
       }; ask(); } };
@@ -559,7 +571,7 @@
         const hit = ray.intersectObjects(solid, false)[0]; if (hit && this.infoOf(hit.object) !== L.key && hit.distance < ray.ray.origin.distanceTo(w) - 1) hiddenLabels.push(L.el.textContent + " (behind " + (this.infoOf(hit.object) || hit.object.userData.tag || "a part") + ")");
       }
       const F = this.factList || [], ids = new Set(F.map((f) => f.id));
-      const facts = { total: F.length, sourced: F.filter((f) => f.status === "sourced").length, noSource: F.filter((f) => f.status === "sourced" && !f.url).map((f) => f.id), unlinked: Object.keys(this.infoDict).filter((k) => this.infoDict[k].fact && !ids.has(this.infoDict[k].src)) };
+      const facts = { total: F.length, sourced: F.filter((f) => f.status === "sourced").length, noSource: F.filter((f) => f.status === "sourced" && !f.url).map((f) => f.id), unlinked: Object.keys(this.infoDict).filter((k) => { const d = this.infoDict[k], l = [].concat(d.src || []); return (d.fact && !l.length) || l.some((i) => !ids.has(i)); }), general: Object.keys(this.infoDict).filter((k) => ![].concat(this.infoDict[k].src || []).length) };
       return { parts: ms.length, triangles: Math.round(tris), tags, extents, floating, hiddenLabels, failedChecks: (this.checks || []).filter((c) => !c.ok).map((c) => c.name + (c.detail ? ": " + c.detail : "")), checks: (this.checks || []).length, facts };
     }
     readout(text) { if (this.readoutEl.textContent !== text) this.readoutEl.textContent = text; }
@@ -647,7 +659,10 @@ body{margin:0;background:var(--m-paper);color:var(--m-ink);font:14px/1.5 -apple-
 .mech-label{position:absolute;transform:translateY(-50%);font-size:11.5px;line-height:1.2;white-space:nowrap;color:var(--m-ink);background:var(--m-card);border:1px solid var(--m-rule);border-radius:5px;padding:2px 6px}
 .mech-label.pin{transform:translate(-50%,-50%);background:transparent;border:0;font-weight:500;text-shadow:0 0 4px var(--m-card),0 0 4px var(--m-card)}
 .mech-label.pin.box{background:var(--m-card);border:1px solid var(--m-rule);font-size:12.5px;padding:3px 8px;text-shadow:none}
-.mech-panel{position:absolute;left:50%;transform:translateX(-50%);bottom:8px;width:max-content;max-width:min(340px,80%);background:var(--m-card);border:1px solid var(--m-rule);border-radius:9px;padding:9px 11px;font-size:12.5px;line-height:1.45;color:var(--m-muted)}
+.mech-panel{margin:0 0 8px;background:var(--m-card);border:1px solid var(--m-rule);border-radius:9px;padding:9px 11px;font-size:12.5px;line-height:1.45;color:var(--m-muted)}
+.mech-label.can{pointer-events:auto;cursor:pointer}.mech-label.can:hover{border-color:var(--m-ink)}
+.mech-panel .row{margin-top:3px}.mech-panel u{text-decoration:none;color:var(--m-ink);font-weight:600;margin-right:6px}
+.mech-panel small{display:block;margin-top:6px;font-size:11px}.mech-panel small i{font-style:normal;border:1px solid var(--m-rule);border-radius:4px;padding:0 5px;margin-right:5px;color:var(--m-ink)}
 .mech-panel b{display:block;color:var(--m-ink);font-weight:600;font-size:13px;margin-bottom:2px}.mech-panel span{display:block}.mech-panel em{display:block;font-style:normal;color:var(--m-ink);margin-top:4px}
 .mech-lesson{border:1px solid var(--m-rule);border-radius:9px;padding:9px 11px;margin:0 0 8px;font-size:13px}
 .mech-lesson .row{display:flex;align-items:center;gap:8px}.mech-lesson b{font-weight:600}.mech-lesson .n{color:var(--m-muted);font-size:12px;margin-right:auto}

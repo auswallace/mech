@@ -11,7 +11,7 @@ A figure is a small true model of a thing that the reader can step into: whole o
 The core is real 3D with an isometric camera. Depth, orbit, ghosting and exploded views come from the renderer. You spend your effort on the model, the parts and the teaching.
 
 ## 0. Use the current skill
-Before you build, update this folder: run `git pull` in it. Then read `VERSION` in `kit/mech.js` and say it in your report ("built with mech 0.4"). A figure from an old copy of the kit does not have the newer parts and checks. If the kit has no `F.gear`, `F.facts` or `F.check`, the copy is old. Stop and update.
+Before you build, update this folder: run `git pull` in it. Then read `VERSION` in `kit/mech.js` and say it in your report ("built with mech 0.5"). A figure from an old copy of the kit does not have the newer parts and checks. If the kit has no `F.gear`, `F.facts` or `F.check`, the copy is old. Stop and update.
 
 ## 1. Intake: three questions, asked as options
 
@@ -55,7 +55,7 @@ Start from `template/scene.js`. Order: model, mechanism, covers, outer shell, pa
 
 - World is x forward, y left, z up. Choose one unit and keep it.
 - Group parts by tag and by assembly, so they ghost and come apart together.
-- Give every part the reader should learn an `info` key, and describe it once with `F.describe`.
+- Give every part the reader should learn an `info` key, and describe it once with `F.describe`: `what` it is, what it `does`, and `how`. One short sentence each, plain and true. Give `src` so the panel shows what is sourced.
 - One `F.onFrame` function reads the state, moves the parts and writes the readout.
 - Use the real parts in the kit. `F.gear` for anything with teeth, `mech.wrapPath` and `F.chain` for a chain or belt round wheels, `F.link` for bars and rods between two moving points, `F.spring` for coils. Do not fake them with discs and loose boxes.
 - Parts that are fixed to each other go in one group and move as one. Cogs on one hub turn together. A part bolted to the frame does not move.
@@ -70,7 +70,7 @@ The capture prints one audit line per stage and saves every lesson step as an im
 - `floating` is empty in every stage. `failedChecks` is empty. No console errors.
 - `hiddenLabels` is empty in every stage. If a label points at a hidden spot, move its anchor with `on` or `offset`, or take it out of that set.
 - `extents` make sense: each tag has the size you expect in your unit, and things that hang are taller than they are deep.
-- `facts.unlinked` and `facts.noSource` are empty. Every `fact` in `F.describe` has a `src` that names an entry in `F.facts`.
+- `facts.unlinked` and `facts.noSource` are empty. Every `fact` in `F.describe` has a `src` that names an entry in `F.facts`. Read `facts.general`: these parts show "common knowledge, no source". Each one must be a statement that nobody would dispute.
 - Stranger test: for the first stage, write one line: what would a person who has never seen this figure say it is? If the answer is not the subject, fix the shape or add its surroundings.
 - For each lesson image, check that the screen shows what the step text says. A step that claims a motion must show that motion.
 - Each stage adds one thing. Each hint states something the reader can see.
@@ -115,11 +115,11 @@ F.group({ at, rot, group, info, explode, channel });  F.led(at, r, opts);  F.scr
 F.ghost(tagOrParts, alpha);  F.focus(objectOrBox3, { azimuth, elevation, pad });  F.to("name", value, tau);  F.ch("name");
 F.glow(mesh, 0..1, color);  F.shadow(0..1);  F.onFrame((dt, t) => {});  F.readout(text);  F.tour(stepFn);  F.audit();
 // teaching
-F.describe({ key: { name, role, fact } });        // click a part with info: key to see this
+F.describe({ key: { name, what, does, how, fact, src } });   // click a part or its label to see this. src: one fact id or a list
 const L = F.label(key, { on, offset, set, text, pin, box });  F.labels(set);  L.text("new text");   // pointers in two columns, or pinned text
 mech.hop(a, b, t, lift);                           // a point on an arc from a to b, for packets between stations
 // accuracy
-F.facts([{ id, claim, status, source, url }]);  F.describe({ key: { name, role, fact, src: "factId" } });  F.check(name, ok, detail);
+F.facts([{ id, claim, status, source, url }]);  F.describe({ key: { name, what, does, how, fact, src: ["factId"] } });  F.check(name, ok, detail);
 F.flow(points, { color, count, speed, r, group, set });  F.flows(set);
 const lesson = F.lesson([{ title, text, go() }], { onClose });  lesson.open(0);
 const quiz = F.quiz([{ ask, key, also }]);  quiz.start();

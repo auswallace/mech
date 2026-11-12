@@ -28,3 +28,5 @@ One line per mistake found in review. Read this before you build. Add to it when
 - Bridges and cover plates hide a movement. Make them see-through from the first stage that shows the mechanism, or leave them out and say so.
 - A fan of flat plates does not read as a toothed wheel. An escape wheel, a ratchet and a sprocket are all `F.gear`.
 - When the lesson names a part (the pallet fork), that part must exist as its own visible shape, not as two loose blocks.
+- A reader clicks the label, not the part. Labels of described parts open the part panel. Check that a click on a label works.
+- One block of text in the part panel mixes what a part is with what it does and how. Use `what`, `does`, `how`, one claim each, and give `src`.

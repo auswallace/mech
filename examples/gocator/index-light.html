@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How a laser line profiler measures height</title>
+<style>
+:root{--m-paper:#121212;--m-ink:#e8e8e8;--m-muted:#8a8a8a;--m-card:#161616;--m-rule:#2a2a2a;--m-lit:#fff;--m-mid:#6a6a6a}
+[data-theme=light]{--m-paper:#f7f7f5;--m-ink:#1a1a1a;--m-muted:#6b6b70;--m-card:#fff;--m-rule:#e2e2e0;--m-lit:#000;--m-mid:#9a9a9f}
+body{margin:0;background:var(--m-paper);color:var(--m-ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}
+.mech{max-width:680px;margin:28px auto;background:var(--m-card);border:1px solid var(--m-rule);border-radius:12px;padding:14px 16px 12px}
+.mech-head,.mech-foot{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--m-muted)}
+.mech-head b{color:var(--m-ink);font-weight:500;margin-left:auto}
+.mech-theme{font:inherit;font-size:11px;color:var(--m-muted);background:transparent;border:1px solid var(--m-rule);border-radius:6px;padding:2px 8px;margin-left:10px;cursor:pointer}
+.mech-stage{outline:none;cursor:grab;margin:6px 0;border-radius:8px}
+.mech-stage:active{cursor:grabbing}.mech-stage:focus-visible{box-shadow:0 0 0 2px var(--m-muted)}
+.mech-stage canvas{display:block;width:100%;height:auto}
+.mech-foot code{font:12px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--m-ink)}
+.mech-keys{display:flex;flex-wrap:wrap;gap:6px 18px;margin:10px 0 4px;font-size:12px;color:var(--m-muted)}
+.mech-keys span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px;background:var(--m-mid)}
+.mech-keys .k-lit::before{background:var(--m-lit)}
+.mech-cap{font-size:13px;color:var(--m-muted);margin:6px 0 0}
+.mech-controls{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin:2px 0 8px;font-size:12px;color:var(--m-muted)}
+.mech-controls button{font:inherit;color:var(--m-ink);background:transparent;border:1px solid var(--m-rule);border-radius:7px;padding:5px 10px;cursor:pointer}
+.mech-controls button[aria-pressed=true]{background:var(--m-ink);color:var(--m-card);border-color:var(--m-ink)}
+.mech-controls input[type=range]{flex:1;min-width:120px;accent-color:var(--m-ink)}
+.mech-controls .sp{flex-basis:100%;height:0}
+.mech-stage{position:relative}
+.mech-over{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.mech-leaders{position:absolute;inset:0;width:100%;height:100%}
+.mech-leaders path{fill:none;stroke:var(--m-muted);stroke-width:1}.mech-leaders circle{fill:var(--m-ink)}
+.mech-label{position:absolute;transform:translateY(-50%);font-size:11.5px;line-height:1.2;white-space:nowrap;color:var(--m-ink);background:var(--m-card);border:1px solid var(--m-rule);border-radius:5px;padding:2px 6px}
+.mech-label.pin{transform:translate(-50%,-50%);background:transparent;border:0;font-weight:500;text-shadow:0 0 4px var(--m-card),0 0 4px var(--m-card)}
+.mech-label.pin.box{background:var(--m-card);border:1px solid var(--m-rule);font-size:12.5px;padding:3px 8px;text-shadow:none}
+.mech-panel{margin:0 0 8px;background:var(--m-card);border:1px solid var(--m-rule);border-radius:9px;padding:9px 11px;font-size:12.5px;line-height:1.45;color:var(--m-muted)}
+.mech-label.can{pointer-events:auto;cursor:pointer}.mech-label.can:hover{border-color:var(--m-ink)}
+.mech-panel .row{margin-top:3px}.mech-panel u{text-decoration:none;color:var(--m-ink);font-weight:600;margin-right:6px}
+.mech-panel small{display:block;margin-top:6px;font-size:11px}.mech-panel small i{font-style:normal;border:1px solid var(--m-rule);border-radius:4px;padding:0 5px;margin-right:5px;color:var(--m-ink)}
+.mech-panel b{display:block;color:var(--m-ink);font-weight:600;font-size:13px;margin-bottom:2px}.mech-panel span{display:block}.mech-panel em{display:block;font-style:normal;color:var(--m-ink);margin-top:4px}
+.mech-lesson{border:1px solid var(--m-rule);border-radius:9px;padding:9px 11px;margin:0 0 8px;font-size:13px}
+.mech-lesson .row{display:flex;align-items:center;gap:8px}.mech-lesson b{font-weight:600}.mech-lesson .n{color:var(--m-muted);font-size:12px;margin-right:auto}
+.mech-lesson button{font:inherit;font-size:12px;color:var(--m-ink);background:transparent;border:1px solid var(--m-rule);border-radius:7px;padding:4px 10px;cursor:pointer}
+.mech-lesson p{margin:6px 0 0;color:var(--m-muted)}
+.mech-sources{border-top:1px solid var(--m-rule);margin-top:10px;padding-top:8px;font-size:12px;color:var(--m-muted)}
+.mech-sources b{color:var(--m-ink);font-weight:600}.mech-sources ul{margin:6px 0 0;padding-left:18px}.mech-sources li{margin:3px 0}
+.mech-sources i{font-style:normal;border:1px solid var(--m-rule);border-radius:4px;padding:0 5px;font-size:11px;margin:0 4px}.mech-sources a{color:var(--m-ink)}</style>
+</head>
+<body>
+<div id="fig"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* mech: isometric technical figures on a real 3D core.
+   World: x right, y toward the viewer, z up. Units are millimetres of the real thing, or whatever you like.
+   Uses the global THREE (r128). Everything else is here. */
+(function (global) {
+  const T = global.THREE;
+  const THEMES = {
+    dark: { paper: 0x121212, face: 0x1b1b1b, hi: 0x565656, mid: 0x3c3c3c, lo: 0x282828, lit: 0xededed, edge: 0xd8d8d8, edgeLo: 0x7a7a7a, shadow: 0.6, ambient: 0.42 },
+    light: { paper: 0xf7f7f5, face: 0xffffff, hi: 0xcfcdc7, mid: 0xa5a39e, lo: 0x6c6b68, lit: 0x232326, edge: 0x2a2a2e, edgeLo: 0x77777c, shadow: 0.2, ambient: 0.3 },
+  };
+  const GRADIENT = [0.5, 0.68, 0.85, 1.0];
+  // Named materials. In style "real" they are physically based. In style "line" each one maps to a tone.
+  const MATS = {
+    castAl:   { color: 0xb4b8bc, metal: 0.85, rough: 0.58, tone: "hi" },
+    machined: { color: 0xdfe2e5, metal: 1.0, rough: 0.22, tone: "hi", lit: true },
+    steel:    { color: 0x8e9298, metal: 1.0, rough: 0.36, tone: "mid" },
+    darkSteel:{ color: 0x34373c, metal: 0.9, rough: 0.48, tone: "mid" },
+    iron:     { color: 0x5a4a41, metal: 0.75, rough: 0.62, tone: "mid" },
+    chrome:   { color: 0xffffff, metal: 1.0, rough: 0.07, tone: "hi" },
+    brass:    { color: 0xb08d48, metal: 1.0, rough: 0.3, tone: "mid" },
+    plastic:  { color: 0x17181b, metal: 0.0, rough: 0.52, tone: "lo" },
+    rubber:   { color: 0x0d0d0e, metal: 0.0, rough: 0.92, tone: "lo" },
+    glass:    { color: 0x05080b, metal: 0.6, rough: 0.05, tone: "lo", env: 1.4 },
+    paint:    { color: 0x1b3657, metal: 0.35, rough: 0.38, clearcoat: 1, tone: "hi" },
+    flat:     { color: 0x808080, metal: 0.05, rough: 0.55, tone: "mid" },
+    concrete: { color: 0xaeaba3, metal: 0.0, rough: 0.9, tone: "hi" },
+    light:    { color: 0xffffff, metal: 0, rough: 0.3, emissive: 0xffffff, tone: "hi", lit: true },
+  };
+
+  function gradientMap() {
+    const data = new Uint8Array(GRADIENT.map((v) => Math.round(v * 255)));
+    const tex = new T.DataTexture(data, GRADIENT.length, 1, T.LuminanceFormat);
+    tex.minFilter = tex.magFilter = T.NearestFilter;
+    tex.needsUpdate = true;
+    return tex;
+  }
+
+  // ---------- geometry helpers ----------
+  function roundedRect(w, d, r) {
+    r = Math.min(r, w / 2, d / 2);
+    const s = new T.Shape();
+    s.moveTo(-w / 2 + r, -d / 2);
+    s.lineTo(w / 2 - r, -d / 2); s.absarc(w / 2 - r, -d / 2 + r, r, -Math.PI / 2, 0, false);
+    s.lineTo(w / 2, d / 2 - r); s.absarc(w / 2 - r, d / 2 - r, r, 0, Math.PI / 2, false);
+    s.lineTo(-w / 2 + r, d / 2); s.absarc(-w / 2 + r, d / 2 - r, r, Math.PI / 2, Math.PI, false);
+    s.lineTo(-w / 2, -d / 2 + r); s.absarc(-w / 2 + r, -d / 2 + r, r, Math.PI, Math.PI * 1.5, false);
+    return s;
+  }
+  // A rounded box standing on z=0, centred at origin in x,y. bevel adds a small chamfer on the top edge.
+  function boxGeo({ w = 10, d = 10, h = 10, r = 0, bevel = 0, segments = 4 }) {
+    const shape = roundedRect(w, d, r);
+    const g = new T.ExtrudeGeometry(shape, { depth: h, bevelEnabled: bevel > 0, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 1, curveSegments: segments });
+    if (bevel > 0) g.translate(0, 0, bevel); // keep base on z=0 after the bevel
+    g.computeVertexNormals();
+    return g;
+  }
+  function cylGeo({ r = 5, h = 10, n = 32, axis = "z" }) {
+    const g = new T.CylinderGeometry(r, r, h, n, 1, false);
+    // CylinderGeometry is along y, centred. Rotate so it stands on z=0 (or lies along x / y).
+    if (axis === "z") { g.rotateX(Math.PI / 2); g.translate(0, 0, h / 2); }
+    else if (axis === "y") { g.translate(0, h / 2, 0); }
+    else if (axis === "x") { g.rotateZ(-Math.PI / 2); g.translate(h / 2, 0, 0); }
+    return g;
+  }
+  function tubeGeo(points, r = 1, { n = 10, bend = 2, closed = false } = {}) {
+    const v = points.map((p) => new T.Vector3(p[0], p[1], p[2]));
+    const curve = new T.CatmullRomCurve3(v, closed, "centripetal", 0.5);
+    return new T.TubeGeometry(curve, Math.max(8, points.length * 12 * bend), r, n, closed);
+  }
+  // A side profile in the x-z plane, extruded across y. points: [x,z] or { arc:[cx,cz,r,a0,a1,clockwise] }.
+  function profileGeo(points, depth, yCenter = 0) {
+    const s = new T.Shape(); let first = true;
+    for (const p of points) { if (p.arc) s.absarc(...p.arc); else if (first) { s.moveTo(p[0], p[1]); first = false; } else s.lineTo(p[0], p[1]); }
+    const g = new T.ExtrudeGeometry(s, { depth, bevelEnabled: false, curveSegments: 20 });
+    g.rotateX(Math.PI / 2); g.translate(0, yCenter + depth / 2, 0);
+    g.computeVertexNormals();
+    return g;
+  }
+
+  // Toothed wheel for a chain or a gear train. Pitch radius = pitch / (2 sin(pi / teeth)). A roller sits in the gap at angle 0.
+  function gearGeo({ teeth, pitch, thick = 2, hole = 0, axis = "z", depth = 0.3 }) {
+    const R = pitch / (2 * Math.sin(Math.PI / teeth)), rr = R - pitch * depth, rt = R + pitch * depth * 0.9, da = (Math.PI * 2) / teeth, s = new T.Shape();
+    for (let i = 0; i < teeth; i++) for (const [f, r] of [[0.24, rr], [0.41, rt], [0.59, rt], [0.76, rr]]) { const a = (i + f) * da, x = r * Math.cos(a), y = r * Math.sin(a); i || f > 0.3 ? s.lineTo(x, y) : s.moveTo(x, y); }
+    s.closePath();
+    if (hole > 0) { const h = new T.Path(); h.absarc(0, 0, hole, 0, Math.PI * 2, true); s.holes.push(h); }
+    const g = new T.ExtrudeGeometry(s, { depth: thick, bevelEnabled: false, curveSegments: 24 }); g.translate(0, 0, -thick / 2);
+    if (axis === "y") g.rotateX(Math.PI / 2); else if (axis === "x") g.rotateY(Math.PI / 2);
+    g.userData.pitchRadius = R; return g;
+  }
+  const pitchRadius = (teeth, pitch) => pitch / (2 * Math.sin(Math.PI / teeth));
+  // Path of a chain, belt or cable round a closed loop of wheels, in the x-z plane.
+  // wheels: [{ c: [x, z], r, s: +1 | -1, y }]. s is the turning sense seen with x to the right and z up: +1 anticlockwise, -1 clockwise.
+  // Returns { length, at(distance) -> { x, y, z, ang }, arcs: [length on each wheel] }.
+  function wrapPath(wheels) {
+    const n = wheels.length, tan = [], seg = [];
+    for (let i = 0; i < n; i++) {
+      const A = wheels[i], B = wheels[(i + 1) % n], D = [B.c[0] - A.c[0], B.c[1] - A.c[1]], d = Math.hypot(D[0], D[1]), k = B.r * B.s - A.r * A.s;
+      const pd = Math.atan2(D[1], D[0]), ac = Math.acos(Math.max(-1, Math.min(1, -k / d)));
+      for (const sg of [1, -1]) { const q = [Math.cos(pd + sg * ac), Math.sin(pd + sg * ac)], u = [-q[1], q[0]], L = D[0] * u[0] + D[1] * u[1]; if (L > 0) { tan.push({ a: [A.c[0] + A.r * A.s * q[0], A.c[1] + A.r * A.s * q[1]], b: [B.c[0] + B.r * B.s * q[0], B.c[1] + B.r * B.s * q[1]], L, u }); break; } }
+    }
+    let length = 0; const arcs = [];
+    for (let i = 0; i < n; i++) {
+      const t = tan[i], j = (i + 1) % n, W = wheels[j], A = wheels[i];
+      seg.push({ line: true, from: length, len: t.L, t, ya: A.y || 0, yb: W.y || 0 }); length += t.L;
+      const a0 = Math.atan2(t.b[1] - W.c[1], t.b[0] - W.c[0]), o = tan[j].a, a1 = Math.atan2(o[1] - W.c[1], o[0] - W.c[0]);
+      const sweep = (((a1 - a0) * W.s) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+      seg.push({ from: length, len: sweep * W.r, a0, sweep, W }); arcs[j] = sweep * W.r; length += sweep * W.r;
+    }
+    const at = (dist) => {
+      dist = ((dist % length) + length) % length; let g = seg[seg.length - 1];
+      for (const q of seg) if (dist < q.from + q.len) { g = q; break; }
+      const f = g.len ? (dist - g.from) / g.len : 0;
+      if (g.line) return { x: g.t.a[0] + g.t.u[0] * g.len * f, z: g.t.a[1] + g.t.u[1] * g.len * f, y: g.ya + (g.yb - g.ya) * f, ang: Math.atan2(g.t.u[1], g.t.u[0]) };
+      const a = g.a0 + g.W.s * g.sweep * f; return { x: g.W.c[0] + g.W.r * Math.cos(a), z: g.W.c[1] + g.W.r * Math.sin(a), y: g.W.y || 0, ang: a + g.W.s * Math.PI / 2 };
+    };
+    return { length, at, arcs };
+  }
+  // Point on a hop from a to b: t from 0 to 1, lifted by `lift` in the middle. For messages that travel between stations.
+  const hop = (a, b, t, lift = 0) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t + lift * Math.sin(Math.PI * t)];
+  // Flat plate standing on z = 0 with rectangular holes: { w, d, h, holes: [{ x, y, w, d }] }.
+  function plateGeo({ w, d, h, holes = [] }) {
+    const s = new T.Shape(); s.moveTo(-w / 2, -d / 2); s.lineTo(w / 2, -d / 2); s.lineTo(w / 2, d / 2); s.lineTo(-w / 2, d / 2); s.closePath();
+    for (const o of holes) { const p = new T.Path(); p.moveTo(o.x - o.w / 2, o.y - o.d / 2); p.lineTo(o.x - o.w / 2, o.y + o.d / 2); p.lineTo(o.x + o.w / 2, o.y + o.d / 2); p.lineTo(o.x + o.w / 2, o.y - o.d / 2); p.closePath(); s.holes.push(p); }
+    return new T.ExtrudeGeometry(s, { depth: h, bevelEnabled: false });
+  }
+  // Round part from a profile of [radius, height] pairs, spun about an axis.
+  function latheGeo(profile, { axis = "z", n = 36 } = {}) {
+    const g = new T.LatheGeometry(profile.map((p) => new T.Vector2(Math.max(p[0], 0.0001), p[1])), n);
+    if (axis === "z") g.rotateX(Math.PI / 2); else if (axis === "x") g.rotateZ(-Math.PI / 2);
+    g.computeVertexNormals();
+    return g;
+  }
+  function torusGeo({ R = 5, r = 0.5, axis = "z", n = 32 } = {}) {
+    const g = new T.TorusGeometry(R, r, 10, n);
+    if (axis === "x") g.rotateY(Math.PI / 2); else if (axis === "y") g.rotateX(Math.PI / 2);
+    return g;
+  }
+  // Scroll housing (turbo or pump): a tube wound once round the axis x, growing from r0 to r1.
+  function voluteGeo({ R = 3.5, r0 = 1.2, r1 = 2.5, squash = 1 } = {}) {
+    const f = (u, v, t) => { const a = u * Math.PI * 1.96, b = v * Math.PI * 2, rt = r0 + (r1 - r0) * u, q = R + rt * Math.cos(b); t.set(rt * Math.sin(b) * squash, q * Math.cos(a), q * Math.sin(a)); };
+    const g = new T.ParametricGeometry(f, 56, 14); g.computeVertexNormals(); return g;
+  }
+  // Closed cross-section of a rounded body: half width W, from z = zb to z = zt. exp 2 is an ellipse, 5 is a soft box.
+  function superSection(W, zb, zt, exp = 4.5, count = 44) {
+    const sp = (c) => Math.sign(c) * Math.pow(Math.abs(c), 2 / exp), zc = (zb + zt) / 2, hh = (zt - zb) / 2;
+    return Array.from({ length: count }, (_, j) => { const a = (j / count) * Math.PI * 2; return [W * sp(Math.cos(a)), zc + hh * sp(Math.sin(a))]; });
+  }
+  // Interpolate rows of numbers (first column is x) with a Catmull-Rom spline. Returns `steps + 1` rows.
+  function sweep(keys, steps = 48) {
+    const n = keys.length, out = [];
+    const cr = (p0, p1, p2, p3, t) => 0.5 * (2 * p1 + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t + (-p0 + 3 * p1 - 3 * p2 + p3) * t * t * t);
+    for (let s = 0; s <= steps; s++) {
+      const f = (s / steps) * (n - 1), i = Math.min(n - 2, Math.floor(f)), t = f - i;
+      const k = (d) => keys[Math.max(0, Math.min(n - 1, i + d))];
+      out.push(keys[0].map((_, c) => cr(k(-1)[c], k(0)[c], k(1)[c], k(2)[c], t)));
+    }
+    return out;
+  }
+  // Skin a row of sections [{ x, pts: [[y, z], ...] }] into one smooth surface. filter(i, j, n) keeps or drops a panel.
+  function loftGeo(sections, { filter, caps = true } = {}) {
+    const n = sections[0].pts.length, pos = [], idx = [];
+    sections.forEach((s) => s.pts.forEach((p) => pos.push(s.x, p[0], p[1])));
+    for (let i = 0; i < sections.length - 1; i++) for (let j = 0; j < n; j++) {
+      if (filter && !filter(i, j, n, sections[i].x)) continue;
+      const a = i * n + j, b = i * n + ((j + 1) % n), c = (i + 1) * n + j, d = (i + 1) * n + ((j + 1) % n);
+      idx.push(a, c, b, b, c, d);
+    }
+    if (caps && !filter) for (const [si, flip] of [[0, false], [sections.length - 1, true]]) {
+      const s = sections[si], c = pos.length / 3, cy = s.pts.reduce((t, p) => t + p[0], 0) / n, cz = s.pts.reduce((t, p) => t + p[1], 0) / n;
+      pos.push(s.x, cy, cz);
+      for (let j = 0; j < n; j++) { const a = si * n + j, b = si * n + ((j + 1) % n); flip ? idx.push(c, a, b) : idx.push(c, b, a); }
+    }
+    const g = new T.BufferGeometry();
+    g.setAttribute("position", new T.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
+    return g;
+  }
+
+  // ---------- the figure ----------
+  const VERSION = "0.5";
+  class Figure {
+    constructor(mount, { theme = "dark", style = "line", width = 640, height = 420, azimuth = 40, elevation = 32, hint = "", readout = "" } = {}) {
+      this.mount = typeof mount === "string" ? document.querySelector(mount) : mount;
+      this.theme = THEMES[theme] ? theme : "dark";
+      this.T = THEMES[this.theme];
+      this.style = style === "real" ? "real" : "line"; this.lastInput = performance.now(); this.snap = false;
+      this.width = width; this.height = height;
+      this.azimuth = azimuth; this.elevation = elevation;
+      this.parts = [];          // every mesh we made, with its tone
+      this.updaters = [];       // per-frame fns (dt, t)
+      this.channels = {};       // named scalars that ease toward a target: { v, to, tau }
+      this.cut = null;          // clipping plane or null
+      this.view = null; this.viewTo = null; this.focusBox = null;
+      this.gradient = gradientMap();
+      this.running = false; this.visible = false; this.last = 0; this.time = 0;
+      this.reduced = global.matchMedia && global.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      global.mech.current = this;
+      this.#dom(hint, readout);
+      this.#scene();
+      this.#input();
+    }
+    #dom(hint, readout) {
+      const m = this.mount;
+      m.classList.add("mech");
+      m.innerHTML = `<div class="mech-stage" tabindex="0" role="img"><canvas></canvas><div class="mech-over"><svg class="mech-leaders"></svg></div><div class="mech-panel" hidden></div></div><div class="mech-foot"><span class="mech-hint">${hint}</span><code class="mech-readout">${readout}</code></div>`;
+      this.stage = m.querySelector(".mech-stage");
+      this.canvas = m.querySelector("canvas");
+      this.readoutEl = m.querySelector(".mech-readout");
+      this.over = m.querySelector(".mech-over"); this.leaders = m.querySelector(".mech-leaders"); this.panel = m.querySelector(".mech-panel"); this.stage.after(this.panel);
+      this.infoDict = {}; this.labelList = []; this.labelSet = null; this.flowList = []; this.flowSet = null; this.selected = null; this.pickHandler = null;
+    }
+    #scene() {
+      const r = (this.renderer = new T.WebGLRenderer({ canvas: this.canvas, antialias: true, alpha: true }));
+      r.setPixelRatio(Math.min(global.devicePixelRatio || 1, 2));
+      r.setSize(this.width, this.height, false);
+      r.shadowMap.enabled = true; r.shadowMap.type = T.PCFSoftShadowMap;
+      r.localClippingEnabled = true;
+      r.setClearColor(0x000000, 0);
+      const s = (this.scene = new T.Scene());
+      this.root = new T.Group(); s.add(this.root);
+      const cam = (this.camera = new T.OrthographicCamera(-1, 1, 1, -1, -2000, 2000));
+      cam.up.set(0, 0, 1);
+      const real = this.style === "real";
+      if (real) {
+        r.outputEncoding = T.sRGBEncoding; r.toneMapping = T.ACESFilmicToneMapping; r.toneMappingExposure = this.theme === "dark" ? 0.95 : 1.1;
+        const es = new T.Scene(), sg = new T.SphereGeometry(60, 32, 16), col = [];
+        const top = this.theme === "dark" ? 0.22 : 0.7, low = this.theme === "dark" ? 0.01 : 0.2;
+        for (let i = 0; i < sg.attributes.position.count; i++) { const k = Math.pow((sg.attributes.position.getZ(i) / 60 + 1) / 2, 1.6), v = low + (top - low) * k; col.push(v, v, v * 1.04); }
+        sg.setAttribute("color", new T.Float32BufferAttribute(col, 3));
+        es.add(new T.Mesh(sg, new T.MeshBasicMaterial({ vertexColors: true, side: T.BackSide })));
+        const panel = (w, h, x, y, z, k) => { const m = new T.Mesh(new T.PlaneGeometry(w, h), new T.MeshBasicMaterial({ color: new T.Color(k, k, k), side: T.DoubleSide })); m.position.set(x, y, z); m.lookAt(0, 0, 0); es.add(m); };
+        panel(40, 24, -10, -22, 48, 5); panel(22, 44, -50, -20, 14, 2.6); panel(20, 36, 46, 26, 16, 1.2); panel(60, 8, 10, -52, 10, 1.6);
+        const pm = new T.PMREMGenerator(r); s.environment = pm.fromScene(es, 0.03).texture; pm.dispose();
+      }
+      s.add(new T.AmbientLight(0xffffff, real ? 0.08 : this.T.ambient));
+      const key = (this.key = new T.DirectionalLight(0xffffff, real ? 1.5 : 0.95));
+      key.position.set(-120, -220, 300);           // back-left and high: tops lightest, right faces darkest
+      key.castShadow = true;
+      key.shadow.mapSize.set(2048, 2048);
+      key.shadow.radius = 4; key.shadow.bias = -0.0008;
+      s.add(key);
+      const fill = new T.DirectionalLight(0xffffff, real ? 0.25 : 0.18); fill.position.set(200, 120, 80); s.add(fill);
+      // ground that only receives shadow
+      const gm = new T.ShadowMaterial({ opacity: this.T.shadow });
+      this.ground = new T.Mesh(new T.PlaneGeometry(4000, 4000), gm);
+      this.ground.receiveShadow = true; this.ground.position.z = -0.01;
+      s.add(this.ground);
+    }
+    #input() {
+      const st = this.stage;
+      let drag = null;
+      st.addEventListener("pointerdown", (e) => { this.touch(); drag = { x: e.clientX, y: e.clientY, az: this.azimuth, el: this.elevation }; st.setPointerCapture(e.pointerId); this.run(); });
+      st.addEventListener("pointermove", (e) => { if (!drag) return; this.azimuth = drag.az + (e.clientX - drag.x) * 0.4; this.elevation = Math.max(8, Math.min(80, drag.el + (e.clientY - drag.y) * 0.3)); this.fit(); this.run(); });
+      st.addEventListener("pointerup", (e) => { const d = drag; drag = null; if (d && Math.hypot(e.clientX - d.x, e.clientY - d.y) < 5 && e.target === this.canvas) this.#pick(e); });
+      st.addEventListener("keydown", (e) => {
+        this.touch();
+        if (e.key === "e" || e.key === "E") { this.setExplode(this.ch("explode") < 0.5 ? 1 : 0); e.preventDefault(); }
+        if (e.key === "c" || e.key === "C") { this.toggleCut(); e.preventDefault(); }
+        if (e.key === "ArrowLeft") { this.azimuth -= 15; this.fit(); e.preventDefault(); }
+        if (e.key === "ArrowRight") { this.azimuth += 15; this.fit(); e.preventDefault(); }
+        if (e.key === "ArrowUp") { this.elevation = Math.min(80, this.elevation + 8); this.fit(); e.preventDefault(); }
+        if (e.key === "ArrowDown") { this.elevation = Math.max(8, this.elevation - 8); this.fit(); e.preventDefault(); }
+        if ((e.key === " " || e.key === "Enter") && this.onPress) { this.onPress(e); e.preventDefault(); }
+        this.run();
+      });
+      if (global.IntersectionObserver) new IntersectionObserver((en) => { this.visible = en[en.length - 1].isIntersecting; if (this.visible) this.run(); }, { rootMargin: "120px 0px" }).observe(st);
+      else this.visible = true;
+    }
+
+    // ---- materials ----
+    material(tone = "hi", { lit = false, color, mat, side } = {}) {
+      let m;
+      if (this.style === "real") {
+        const d = MATS[mat] || MATS[color !== undefined ? "flat" : lit ? "machined" : { hi: "castAl", mid: "steel", lo: "plastic" }[tone] || "castAl"];
+        const o = { color: color !== undefined ? color : d.color, metalness: d.metal, roughness: d.rough, envMapIntensity: d.env || 1 };
+        m = d.clearcoat ? new T.MeshPhysicalMaterial(Object.assign(o, { clearcoat: d.clearcoat, clearcoatRoughness: 0.08 })) : new T.MeshStandardMaterial(o);
+        if (d.emissive) m.emissive.set(d.emissive);
+      } else {
+        const d = MATS[mat];
+        if (d) { tone = d.tone; lit = lit || !!d.lit; }
+        const c = color !== undefined ? color : lit ? this.T.lit : this.T[tone] ?? this.T.hi;
+        m = new T.MeshToonMaterial({ color: c, gradientMap: this.gradient });
+      }
+      if (side === "double") m.side = T.DoubleSide;
+      m.clippingPlanes = this.cut ? [this.cut] : [];
+      m.clipShadows = true;
+      return m;
+    }
+    // ---- adding parts ----
+    // geo: a BufferGeometry standing on z=0. opts: tone, lit, at:[x,y,z], rot:[rx,ry,rz], edges (deg threshold or false), name, explode:[dx,dy,dz], group
+    add(geo, { tone = "hi", lit = false, color, mat, side, at = [0, 0, 0], rot = [0, 0, 0], edges = 28, edgeTone, name, explode, channel = "explode", group, shadow = true, tag, info } = {}) {
+      const mesh = new T.Mesh(geo, this.material(tone, { lit, color, mat, side }));
+      const real = this.style === "real"; if (MATS[mat] && !real) { tone = MATS[mat].tone; lit = lit || !!MATS[mat].lit; }
+      mesh.castShadow = shadow; mesh.receiveShadow = true;
+      mesh.position.set(...at); mesh.rotation.set(...rot);
+      mesh.name = name || "";
+      if (edges !== false) {
+        const eg = new T.EdgesGeometry(geo, edges);
+        const em = new T.LineBasicMaterial({ color: edgeTone === "lo" ? this.T.edgeLo : lit ? this.T.lit : tone === "lo" ? this.T.edgeLo : this.T.edge, transparent: true, opacity: tone === "lo" ? 0.7 : 0.9 });
+        em.userData.base = em.opacity;
+        if (real) { em.color.set(this.T.edge); em.opacity = 0; }
+        em.clippingPlanes = this.cut ? [this.cut] : [];
+        const lines = new T.LineSegments(eg, em);
+        lines.renderOrder = 1; lines.visible = !real;
+        mesh.add(lines);
+        mesh.userData.edges = lines;
+      }
+      mesh.userData.rest = mesh.position.clone();
+      mesh.userData.explode = explode ? new T.Vector3(...explode) : null;
+      mesh.userData.channel = channel; mesh.userData.tag = tag; if (info) mesh.userData.info = info; mesh.userData.alpha = 1; mesh.userData.alphaTo = 1; mesh.userData.shadow = shadow;
+      (group || this.root).add(mesh);
+      this.parts.push(mesh);
+      return mesh;
+    }
+    group(opts = {}) {
+      const g = new T.Group();
+      if (opts.at) g.position.set(...opts.at);
+      if (opts.rot) g.rotation.set(...opts.rot);
+      g.userData.rest = g.position.clone();
+      g.userData.explode = opts.explode ? new T.Vector3(...opts.explode) : null;
+      g.userData.channel = opts.channel || "explode"; if (opts.info) g.userData.info = opts.info;
+      (opts.group || this.root).add(g);
+      this.parts.push(g);
+      return g;
+    }
+    // sugar
+    box(o, opts) { return this.add(boxGeo(o), opts); }
+    cyl(o, opts) { return this.add(cylGeo(o), opts); }
+    lathe(profile, o, opts) { return this.add(latheGeo(profile, o), Object.assign({ edges: 50 }, opts)); }
+    torus(o, opts) { return this.add(torusGeo(o), Object.assign({ edges: false }, opts)); }
+    tube(points, r, opts = {}) { return this.add(tubeGeo(points, r, opts), Object.assign({ edges: false, tone: "mid" }, opts)); }
+    // small decorations
+    screws(points, r = 0.6, opts = {}) { return points.map(([x, y, z]) => this.cyl({ r, h: 0.3, n: 10 }, Object.assign({ tone: "lo", at: [x, y, z], edges: false, shadow: false }, opts))); }
+    led(at, r = 0.9, opts = {}) {
+      const pass = { group: opts.group, tag: opts.tag, explode: opts.explode, channel: opts.channel, edges: false, shadow: false };
+      this.cyl({ r: r + 0.4, h: 0.4, n: 12 }, Object.assign({ mat: "plastic", at }, pass));
+      const dome = this.cyl({ r, h: 0.6, n: 12 }, Object.assign({ tone: "mid", at: [at[0], at[1], at[2] + 0.4] }, pass));
+      dome.userData.led = { on: new T.Color(opts.color || this.T.lit), off: new T.Color(this.T.mid) };
+      return dome;
+    }
+    setLed(mesh, on) { const l = mesh.userData.led; if (!l || l.state === on) return; l.state = on; mesh.material.color.copy(on ? l.on : l.off); mesh.material.emissive.copy(on ? l.on : new T.Color(0)).multiplyScalar(0.6); }
+    // glow: 0..1 heat on a part (emissive), for hot or active things
+    glow(mesh, k, color = 0xff8a2a) { mesh.material.emissive.set(color).multiplyScalar(Math.max(0, Math.min(1, k))); }
+    // ghost: fade parts to an opacity (0 hides them). Accepts meshes, groups or tags.
+    ghost(what, alpha) {
+      const set = (o) => o.traverse((m) => { if (m.isMesh && m.userData.alphaTo !== undefined) m.userData.alphaTo = alpha; });
+      for (const w of [].concat(what)) { if (typeof w === "string") this.parts.forEach((p) => p.userData.tag === w && set(p)); else set(w); }
+      this.run();
+    }
+    // channels: named numbers that ease to a target. Read with ch(name).
+    to(name, value, tau = 0.25) { const c = (this.channels[name] ||= { v: 0, to: 0, tau }); c.to = value; c.tau = tau; this.run(); }
+    ch(name) { return this.channels[name] ? this.channels[name].v : 0; }
+    fins(count, { x = 0, y = 0, z = 0, w = 1.2, d = 10, h = 2.5, gap = 3 } = {}, opts = {}) {
+      const out = [];
+      for (let i = 0; i < count; i++) out.push(this.box({ w, d, h, r: 0.2 }, Object.assign({ tone: "mid", at: [x + i * gap, y, z], edges: 40 }, opts)));
+      return out;
+    }
+    knob({ r = 3, h = 2.6, knurls = 24 } = {}, opts = {}) {
+      const g = this.group(opts);
+      this.cyl({ r, h, n: 32 }, { tone: "mid", group: g });
+      for (let i = 0; i < knurls; i++) { const a = (i / knurls) * Math.PI * 2; this.box({ w: 0.35, d: 0.6, h: h * 0.8 }, { tone: "lo", at: [Math.cos(a) * r, Math.sin(a) * r, h * 0.1], rot: [0, 0, a], edges: false, shadow: false, group: g }); }
+      this.box({ w: r * 0.8, d: 0.4, h: 0.3 }, { tone: "hi", lit: true, at: [-r * 0.35, 0, h], edges: false, shadow: false, group: g });
+      return g;
+    }
+
+    // ---- camera ----
+    // focus(target?, { azimuth, elevation, pad }): ease the camera to frame an object (default: everything).
+    focus(target, { azimuth, elevation, pad = 1.12, snap = false } = {}) {
+      if (azimuth !== undefined) this.azimuth = azimuth;
+      if (elevation !== undefined) this.elevation = elevation;
+      this.focusBox = target && target.isBox3 ? target.clone() : new T.Box3().setFromObject(target || this.root);
+      this.pad = pad;
+      this.fit(snap);
+      this.run();
+    }
+    fit(snap = false) {
+      const box = this.focusBox || (this.focusBox = new T.Box3().setFromObject(this.root));
+      if (box.isEmpty()) return;
+      const a = (this.azimuth * Math.PI) / 180, e = (this.elevation * Math.PI) / 180;
+      const dir = new T.Vector3(Math.sin(a) * Math.cos(e), -Math.cos(a) * Math.cos(e), Math.sin(e));
+      const c = box.getCenter(new T.Vector3());
+      const right = new T.Vector3().crossVectors(new T.Vector3(0, 0, 1), dir).normalize();
+      const up = new T.Vector3().crossVectors(dir, right).normalize();
+      let hw = 0, hh = 0;
+      for (let i = 0; i < 8; i++) {
+        const p = new T.Vector3(i & 1 ? box.max.x : box.min.x, i & 2 ? box.max.y : box.min.y, i & 4 ? box.max.z : box.min.z).sub(c);
+        hw = Math.max(hw, Math.abs(p.dot(right))); hh = Math.max(hh, Math.abs(p.dot(up)));
+      }
+      const asp = this.width / this.height;
+      const half = Math.max(hh, hw / asp) * (this.pad || 1.12);
+      this.viewTo = { c, half, az: this.azimuth, el: this.elevation };
+      if (snap || !this.view) this.view = { c: c.clone(), half, az: this.azimuth, el: this.elevation };
+      if (!this.shadowSet) {
+        const all = new T.Box3().setFromObject(this.root), ac = all.getCenter(new T.Vector3());
+        const sz = Math.max(all.max.x - all.min.x, all.max.y - all.min.y) * 0.75;
+        Object.assign(this.key.shadow.camera, { left: -sz, right: sz, top: sz, bottom: -sz, near: 1, far: 1600 });
+        this.key.target.position.copy(ac); this.scene.add(this.key.target);
+        this.key.position.copy(ac).add(new T.Vector3(-140, -260, 420));
+        this.key.shadow.camera.updateProjectionMatrix();
+        this.shadowSet = true;
+      }
+      this.fitted = true;
+    }
+    #applyView() {
+      const v = this.view, a = (v.az * Math.PI) / 180, e = (v.el * Math.PI) / 180;
+      const dir = new T.Vector3(Math.sin(a) * Math.cos(e), -Math.cos(a) * Math.cos(e), Math.sin(e));
+      this.camera.position.copy(v.c).addScaledVector(dir, 900);
+      this.camera.lookAt(v.c);
+      const asp = this.width / this.height;
+      Object.assign(this.camera, { left: -v.half * asp, right: v.half * asp, top: v.half, bottom: -v.half });
+      this.camera.updateProjectionMatrix();
+    }
+
+    // ---- motion ----
+    onFrame(fn) { this.updaters.push(fn); }
+    setExplode(t, channel = "explode") { this.to(channel, Math.max(0, Math.min(1, t))); }
+    toggleCut() { if (this.cut) this.setCut(null); else this.setCut(this.cutPlane || { normal: [0, 1, 0], at: 0 }); }
+    // plane: { normal:[x,y,z], at: distance } keeps the half-space on the normal's side
+    setCut(plane) {
+      this.cutPlane = plane || this.cutPlane;
+      this.cut = plane ? new T.Plane(new T.Vector3(...plane.normal).normalize(), -plane.at) : null;
+      for (const p of this.parts) {
+        if (!p.isMesh) continue;
+        p.material.clippingPlanes = this.cut ? [this.cut] : [];
+        if (p.userData.edges) p.userData.edges.material.clippingPlanes = this.cut ? [this.cut] : [];
+      }
+      this.run();
+    }
+    spin(obj, axis = "z", rpm = 60, scale = 1) { this.onFrame((dt) => { const w = (rpm * scale) / 60 * 2 * Math.PI; obj.rotation[axis] += w * dt; }); }
+    shadow(k) { this.ground.material.opacity = this.T.shadow * k; }
+    // ---- teaching layer ----
+    // describe({ key: { name, role, fact } }): what each part is. Parts carry `info: key`.
+    describe(dict) { Object.assign(this.infoDict, dict); }
+    infoOf(o) { while (o) { if (o.userData && o.userData.info) return o.userData.info; o = o.parent; } return null; }
+    find(key) { let hit = null; this.root.traverse((o) => { if (!hit && o.userData.info === key) hit = o; }); return hit; }
+    #pick(e) {
+      const r = this.canvas.getBoundingClientRect(), ray = new T.Raycaster();
+      ray.setFromCamera(new T.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), this.camera);
+      const list = this.parts.filter((p) => p.isMesh && p.visible && p.userData.alpha > 0.25 && p.userData.tag !== "flow");
+      let key = null; for (const h of ray.intersectObjects(list, false)) { key = this.infoOf(h.object); if (key) break; }
+      if (this.pickHandler) this.pickHandler(key); else this.select(key);
+    }
+    select(key) {
+      this.selected = key && this.infoDict[key] ? key : null;
+      const d = this.selected && this.infoDict[this.selected];
+      if (!this.pickHandler) { this.say(d ? this.infoHtml(d) : ""); if (d && this.panel.scrollIntoView) this.panel.scrollIntoView({ block: "nearest", behavior: "smooth" }); }
+      this.run();
+    }
+    say(html) { this.panel.innerHTML = html; this.panel.hidden = !html; }
+    // The part panel. New form: what (what it is), does (what it does), how (how it does it), one short sentence each.
+    // Old form: role. src is one fact id or a list. Every source shows as a tag with its status, so the reader sees what is sourced.
+    infoHtml(d) {
+      const row = (head, text) => (text ? `<span class="row"><u>${head}</u>${text}</span>` : "");
+      const body = d.what || d.does || d.how ? row("What it is", d.what) + row("What it does", d.does) + row("How", d.how) : `<span>${d.role || ""}</span>`;
+      const word = { sourced: "sourced", model: "worked out", assumed: "assumed", illustrative: "illustrative" }, F = this.factList || [];
+      const tags = [].concat(d.src || []).map((id) => F.find((f) => f.id === id)).filter(Boolean).map((f) => `<i class="s-${f.status}">${word[f.status] || f.status}</i>${f.status === "sourced" ? f.source || "" : f.status === "model" ? "from the model" : f.status === "assumed" ? "typical, not looked up" : "made for this figure"}`);
+      for (let i = tags.length - 1; i > 0; i--) if (tags.indexOf(tags[i]) < i) tags.splice(i, 1);   // one tag for each source
+      return `<b>${d.name}</b>${body}${d.fact ? `<em>${d.fact}</em>` : ""}<small>${tags.length ? tags.join(" &nbsp; ") : "<i>general</i>common knowledge, no source"}</small>`;
+    }
+    // label(key, { text, on, set, pin }): a pointer to a part. `on` is an object or a world point. Show a set with labels(set).
+    label(key, { text, on, set = "all", pin = false, offset, box = false } = {}) {
+      const el = document.createElement("div"); el.className = "mech-label" + (pin ? " pin" : "") + (box ? " box" : "") + (this.infoDict[key] ? " can" : ""); el.textContent = text || (this.infoDict[key] ? this.infoDict[key].name : key); el.hidden = true; this.over.appendChild(el);
+      el.addEventListener("pointerdown", (e) => e.stopPropagation());
+      el.addEventListener("click", (e) => { e.stopPropagation(); if (!this.infoDict[key]) return; this.touch(); if (this.pickHandler) this.pickHandler(key); else this.select(this.selected === key ? null : key); });
+      const obj = Array.isArray(on) ? null : on || this.find(key); let local = null, probe = null;
+      if (obj) { this.root.updateMatrixWorld(true); const c = new T.Box3().setFromObject(obj).getCenter(new T.Vector3()); if (offset) c.add(new T.Vector3(...offset)); local = obj.worldToLocal(c); obj.traverse((m) => { if (!probe && m.isMesh) probe = m; }); }
+      const L = { key, el, obj, local, probe, world: Array.isArray(on) ? new T.Vector3(...on) : null, set, pin, text(t) { el.textContent = t; L.w = 0; } };
+      this.labelList.push(L); return L;
+    }
+    labels(set) { this.labelSet = set || null; this.run(); }
+    // flow(points, opts): dots that move along a path. Show a set with flows(set).
+    flow(points, { color = 0x4aa8ff, count = 8, speed = 0.3, r = 0.8, group, set = "all" } = {}) {
+      const curve = new T.CatmullRomCurve3(points.map((p) => new T.Vector3(...p)), false, "centripetal", 0.5), dots = [];
+      for (let i = 0; i < count; i++) { const m = this.add(new T.SphereGeometry(r, 10, 8), { color, group, tag: "flow", edges: false, shadow: false }); m.material.emissive.set(color); m.visible = false; dots.push(m); }
+      const f = { curve, dots, speed, set, rate: 1 }; this.flowList.push(f); return f;
+    }
+    flows(set) { this.flowSet = set || null; this.run(); }
+    // lesson(steps): a guided walk. steps: [{ title, text, go() }]. Returns { open(i), close() }.
+    lesson(steps, { onClose } = {}) {
+      const el = document.createElement("div"); el.className = "mech-lesson"; el.hidden = true;
+      el.innerHTML = `<div class="row"><b></b><span class="n"></span><button data-d="-1" aria-label="Previous step">Back</button><button data-d="1" aria-label="Next step">Next</button><button data-d="0" aria-label="Close lesson">Close</button></div><p></p>`;
+      this.stage.after(el);
+      let i = 0;
+      const show = () => { el.querySelector("b").textContent = steps[i].title; el.querySelector(".n").textContent = "Step " + (i + 1) + " of " + steps.length; el.querySelector("p").textContent = steps[i].text; steps[i].go(); this.run(); };
+      const api = { open: (k = 0) => { i = k; el.hidden = false; this.inLesson = true; show(); }, close: () => { el.hidden = true; this.inLesson = false; onClose && onClose(); } };
+      el.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; this.touch(); const d = +b.dataset.d; if (!d) return api.close(); i = Math.max(0, Math.min(steps.length - 1, i + d)); show(); });
+      return api;
+    }
+    // quiz(questions): [{ ask, key }]. The reader clicks the part. Returns { start(), stop() }.
+    quiz(questions, { onEnd } = {}) {
+      let i = 0, score = 0, lock = false;
+      const ask = () => this.say(`<b>Question ${i + 1} of ${questions.length}</b><span>${questions[i].ask}</span>`);
+      const stop = () => { this.pickHandler = null; this.say(""); onEnd && onEnd(); };
+      return { stop, start: () => { i = 0; score = 0; lock = false; this.select(null); this.pickHandler = (key) => {
+        if (lock) return; const q = questions[i], d = this.infoDict[key];
+        if (key === q.key || (q.also || []).includes(key)) { score++; lock = true; this.selected = key; this.say(`<b>Correct</b><span>${d.name}: ${d.does || d.role || ""}</span>`); }
+        else { this.say(`<b>Question ${i + 1} of ${questions.length}</b><span>${q.ask}</span><em>${d ? "That is the " + d.name.toLowerCase() + ". Try again." : "Click a part."}</em>`); if (!d) return; lock = false; return; }
+        setTimeout(() => { lock = false; this.selected = null; i++; if (i < questions.length) ask(); else { this.pickHandler = null; this.say(`<b>Done</b><span>${score} of ${questions.length} correct.</span>`); onEnd && onEnd(); } }, 1500);
+      }; ask(); } };
+    }
+    plate(o, opts) { return this.add(plateGeo(o), opts); }
+    gear(o, opts) { return this.add(gearGeo(o), Object.assign({ edges: 50 }, opts)); }
+    #ends(mesh) { const up = new T.Vector3(0, 0, 1), d = new T.Vector3(); mesh.setEnds = (a, b) => { d.set(b[0] - a[0], b[1] - a[1], b[2] - a[2]); const len = d.length() || 1e-6; mesh.position.set(a[0], a[1], a[2]); mesh.quaternion.setFromUnitVectors(up, d.divideScalar(len)); mesh.scale.z = len; return mesh; }; return mesh; }
+    // link(a, b): a bar between two points. Call mesh.setEnds(a, b) each frame when the points move.
+    link(a, b, { w = 3, d = 3, r = 0.8 } = {}, opts) { return this.#ends(this.add(boxGeo({ w, d, h: 1, r }), opts)).setEnds(a, b); }
+    // spring(a, b): a coil between two points that stretches with them.
+    spring(a, b, { r = 3, turns = 8, wire = 0.5 } = {}, opts) {
+      const pts = []; for (let i = 0; i <= turns * 12; i++) { const t = i / (turns * 12), g = t * turns * Math.PI * 2; pts.push([r * Math.cos(g), r * Math.sin(g), t]); }
+      return this.#ends(this.add(new T.TubeGeometry(new T.CatmullRomCurve3(pts.map((p) => new T.Vector3(...p))), turns * 16, wire, 6, false), Object.assign({ edges: false }, opts))).setEnds(a, b);
+    }
+    // chain({ count, pitch, width }): links that follow a wrapPath. Call chain.place(path, phase) each frame.
+    chain({ count, pitch, width = 7, height = 8 }, opts = {}) {
+      const links = [];
+      for (let i = 0; i < count; i++) {
+        const g = boxGeo({ w: pitch * 1.02, d: i % 2 ? width : width * 0.6, h: height, r: height * 0.42 }); g.rotateX(Math.PI / 2); g.translate(pitch / 2, i % 2 ? width / 2 : width * 0.3, 0);
+        const m = this.add(g, Object.assign({ mat: i % 2 ? "steel" : "darkSteel", edges: false }, opts)); links.push(m);
+      }
+      return { links, count, pitch, place(path, phase = 0) { const step = path.length / count; for (let i = 0; i < count; i++) { const a = path.at((i + phase) * step), b = path.at((i + 1 + phase) * step); links[i].position.set(a.x, a.y, a.z); links[i].rotation.y = -Math.atan2(b.z - a.z, b.x - a.x); } } };
+    }
+    // ---- accuracy ----
+    // facts([{ id, claim, source, url, status }]): status is "sourced", "model" (derived), "assumed" (typical value) or "illustrative" (made up).
+    facts(list) { this.factList = (this.factList || []).concat(list); }
+    // check(name, ok, detail): a test that the model agrees with the facts. Failures show in audit().
+    check(name, ok, detail = "") { (this.checks = this.checks || []).push({ name, ok: !!ok, detail: String(detail) }); }
+    #teach(dt) {
+      // highlight the selected parts
+      const sel = this.selected;
+      for (const p of this.parts) { if (!p.isMesh) continue; const u = p.userData; if (u.ik === undefined) u.ik = this.infoOf(p); const on = !!sel && u.ik === sel; if (on) p.material.emissive.setHex(0x2f8cff).multiplyScalar(0.55); else if (u.hl) p.material.emissive.setHex(0); u.hl = on; }
+      // flows
+      for (const f of this.flowList) { const on = this.flowSet && (f.set === this.flowSet || f.set === "all"); f.t = ((f.t || 0) + dt * f.speed * f.rate) % 1; f.dots.forEach((d, i) => { d.visible = !!on; if (on) d.position.copy(f.curve.getPointAt((f.t + i / f.dots.length) % 1)); }); }
+      // labels: two columns with leader lines, or pinned at the part
+      const W = this.stage.clientWidth, H = this.canvas.clientHeight, v = new T.Vector3(), cols = [[], []]; let svg = "";
+      for (const L of this.labelList) {
+        const on = this.labelSet && (L.set === this.labelSet || L.set === "all") && (!L.probe || (L.probe.visible && L.probe.userData.alpha > 0.3));
+        L.el.hidden = !on; if (!on) continue;
+        if (L.obj) L.obj.localToWorld(v.copy(L.local)); else v.copy(L.world);
+        v.project(this.camera); L.x = (v.x + 1) / 2 * W; L.y = (1 - v.y) / 2 * H;
+        if (L.pin) { L.el.style.left = L.x + "px"; L.el.style.top = L.y + "px"; } else cols[L.x < W / 2 ? 0 : 1].push(L);
+      }
+      cols.forEach((col, side) => {
+        col.sort((a, b) => a.y - b.y); let y = 14;
+        for (const L of col) { L.ly = Math.max(y, Math.min(H - 14, L.y)); y = L.ly + 26; }
+        for (let k = col.length - 1, lim = H - 14; k >= 0; k--) { col[k].ly = Math.min(col[k].ly, lim); lim = col[k].ly - 26; }
+        for (const L of col) {
+          if (!L.w) L.w = L.el.offsetWidth;
+          L.el.style.top = L.ly + "px"; L.el.style.left = (side ? W - 8 - L.w : 8) + "px";
+          const ex = side ? W - 12 - L.w : 12 + L.w;
+          svg += `<path d="M${ex} ${L.ly}L${ex + (side ? -14 : 14)} ${L.ly}L${L.x.toFixed(1)} ${L.y.toFixed(1)}"/><circle cx="${L.x.toFixed(1)}" cy="${L.y.toFixed(1)}" r="2.2"/>`;
+        }
+      });
+      if (svg !== this.lastSvg) { this.leaders.innerHTML = svg; this.lastSvg = svg; }
+    }
+    touch() { this.lastInput = performance.now(); }
+    // tour(step): when nobody touches the figure for `idle` seconds, call step() every `every` seconds.
+    tour(step, { idle = 14, every = 7 } = {}) { this.tourCfg = { step, idle: idle * 1000, every: every * 1000, next: 0 }; }
+    dispose() { this.dead = true; if (this.frame) cancelAnimationFrame(this.frame); this.renderer.dispose(); }
+    // audit(): counts, plus parts that touch nothing (a part must sit on another part).
+    audit() {
+      const ms = []; this.root.updateMatrixWorld(true); this.root.traverse((o) => { if (o.isMesh && o.visible) ms.push(o); });
+      let tris = 0; const tags = {};
+      const boxes = ms.map((m) => { const g = m.geometry; tris += (g.index ? g.index.count : g.attributes.position.count) / 3; const t = m.userData.tag || "untagged"; tags[t] = (tags[t] || 0) + 1; g.computeBoundingBox(); return g.boundingBox.clone().applyMatrix4(m.matrixWorld).expandByScalar(0.6); });
+      const floating = [];
+      boxes.forEach((b, i) => { if (["flow", "packet"].includes(ms[i].userData.tag)) return; if (!boxes.some((c, j) => j !== i && b.intersectsBox(c))) { const c = b.getCenter(new T.Vector3()); floating.push((ms[i].userData.tag || "untagged") + " at " + [c.x, c.y, c.z].map((v) => Math.round(v)).join(",")); } });
+      // size of each tag, so a wrong unit or a part that lies the wrong way shows up as a number
+      const ext = {}; ms.forEach((m, i) => { const t = m.userData.tag || "untagged"; (ext[t] = ext[t] || new T.Box3()).union(boxes[i]); });
+      const extents = {}; for (const t in ext) { const z = ext[t].getSize(new T.Vector3()); extents[t] = [z.x, z.y, z.z].map((v) => Math.round(v)); }
+      // labels of the active set whose part is behind something else
+      const hiddenLabels = [], ray = new T.Raycaster(), v = new T.Vector3(), solid = ms.filter((m) => m.userData.alpha > 0.6 && m.userData.tag !== "flow");
+      for (const L of this.labelList) {
+        if (L.pin || !this.labelSet || (L.set !== this.labelSet && L.set !== "all") || (L.probe && L.probe.userData.alpha <= 0.3)) continue;
+        if (L.obj) L.obj.localToWorld(v.copy(L.local)); else v.copy(L.world);
+        const w = v.clone(), ndc = v.project(this.camera); ray.setFromCamera(new T.Vector2(ndc.x, ndc.y), this.camera);
+        const hit = ray.intersectObjects(solid, false)[0]; if (hit && this.infoOf(hit.object) !== L.key && hit.distance < ray.ray.origin.distanceTo(w) - 1) hiddenLabels.push(L.el.textContent + " (behind " + (this.infoOf(hit.object) || hit.object.userData.tag || "a part") + ")");
+      }
+      const F = this.factList || [], ids = new Set(F.map((f) => f.id));
+      const facts = { total: F.length, sourced: F.filter((f) => f.status === "sourced").length, noSource: F.filter((f) => f.status === "sourced" && !f.url).map((f) => f.id), unlinked: Object.keys(this.infoDict).filter((k) => { const d = this.infoDict[k], l = [].concat(d.src || []); return (d.fact && !l.length) || l.some((i) => !ids.has(i)); }), general: Object.keys(this.infoDict).filter((k) => ![].concat(this.infoDict[k].src || []).length) };
+      return { parts: ms.length, triangles: Math.round(tris), tags, extents, floating, hiddenLabels, failedChecks: (this.checks || []).filter((c) => !c.ok).map((c) => c.name + (c.detail ? ": " + c.detail : "")), checks: (this.checks || []).length, facts };
+    }
+    readout(text) { if (this.readoutEl.textContent !== text) this.readoutEl.textContent = text; }
+
+    run() { if (!this.frame && this.visible && !this.dead) { this.last = 0; this.frame = requestAnimationFrame((t) => this.#tick(t)); } }
+    #tick(now) {
+      if (this.dead) return;
+      const dt = this.last ? Math.min((now - this.last) / 1000, 1 / 30) : 1 / 60;
+      const tc = this.tourCfg; if (tc && !this.reduced && !this.inLesson && !this.pickHandler && !this.selected && now - this.lastInput > tc.idle && now > tc.next) { tc.next = now + tc.every; tc.step(); }
+      this.last = now; this.time += dt;
+      if (!this.fitted) this.fit(true);
+      const ease = (tau) => (this.reduced || this.snap ? 1 : 1 - Math.exp(-dt / tau));
+      for (const k in this.channels) { const c = this.channels[k]; c.v += (c.to - c.v) * ease(c.tau); if (Math.abs(c.to - c.v) < 1e-4) c.v = c.to; }
+      const v = this.view, w = this.viewTo, kv = ease(0.35);
+      v.c.lerp(w.c, kv); v.half += (w.half - v.half) * kv; v.az += (w.az - v.az) * kv; v.el += (w.el - v.el) * kv;
+      this.#applyView();
+      for (const p of this.parts) {
+        const u = p.userData;
+        if (u.explode) p.position.copy(u.rest).addScaledVector(u.explode, this.ch(u.channel));
+        if (p.isMesh && u.alpha !== u.alphaTo) {
+          u.alpha += (u.alphaTo - u.alpha) * ease(0.22); if (Math.abs(u.alphaTo - u.alpha) < 0.004) u.alpha = u.alphaTo;
+          const tr = u.alpha < 0.999; if (p.material.transparent !== tr) { p.material.transparent = tr; p.material.needsUpdate = true; }
+          p.material.opacity = u.alpha; p.material.depthWrite = u.alpha > 0.95; p.castShadow = u.shadow && u.alpha > 0.6;
+          p.visible = u.alpha > 0.004;
+          if (u.edges) {
+            const em = u.edges.material;
+            if (this.style === "real") { em.opacity = u.alpha < 0.6 && u.alpha > 0.004 ? 0.34 : 0; u.edges.visible = em.opacity > 0; }
+            else em.opacity = em.userData.base * Math.min(1, u.alpha * 2.2 + (u.alpha > 0.004 ? 0.12 : 0));
+          }
+        }
+      }
+      for (const f of this.updaters) f(dt, this.time);
+      this.#teach(dt);
+      this.renderer.render(this.scene, this.camera);
+      this.frame = this.visible ? requestAnimationFrame((t) => this.#tick(t)) : 0;
+    }
+  }
+
+  // ---------- card ----------
+  function card(mount, { fig = "Fig 1", title = "", keys = [], caption = "" }) {
+    const m = typeof mount === "string" ? document.querySelector(mount) : mount;
+    const head = document.createElement("div"); head.className = "mech-head";
+    const dark = (document.documentElement.dataset.theme || "dark") === "dark";
+    head.innerHTML = `<span>${fig}</span><b>${title}</b><button class="mech-theme" aria-label="Switch to ${dark ? "light" : "dark"} theme">${dark ? "Light" : "Dark"}</button>`;
+    // The theme button flips data-theme on <html>, remembers the choice for this reader, and tells the scene to rebuild.
+    head.querySelector("button").addEventListener("click", () => { const next = dark ? "light" : "dark"; document.documentElement.dataset.theme = next; try { localStorage.setItem("mech-theme", next); } catch (e) {} global.dispatchEvent(new Event("mech-theme")); });
+    const k = document.createElement("div"); k.className = "mech-keys"; k.innerHTML = keys.map((x) => `<span class="k-${x.mark}">${x.label}</span>`).join("");
+    const c = document.createElement("p"); c.className = "mech-cap"; c.textContent = caption;
+    m.prepend(head); m.append(k, c);
+    const fig3d = global.mech.current, F = (fig3d && fig3d.factList) || [];
+    if (F.length) {
+      const b = document.createElement("button"); b.className = "mech-theme"; b.textContent = "Sources"; b.setAttribute("aria-expanded", "false"); head.append(b);
+      const box = document.createElement("div"); box.className = "mech-sources"; box.hidden = true;
+      const word = { sourced: "from the source", model: "worked out by the model", assumed: "typical value, assumed", illustrative: "made up for illustration" };
+      box.innerHTML = "<b>Where the facts come from</b><ul>" + F.map((f) => `<li>${f.claim} <i>${word[f.status] || f.status}</i>${f.url ? ` <a href="${f.url}" target="_blank" rel="noopener">${f.source || "source"}</a>` : f.source ? ` <span>${f.source}</span>` : ""}</li>`).join("") + "</ul>";
+      m.append(box); b.addEventListener("click", () => { box.hidden = !box.hidden; b.setAttribute("aria-expanded", String(!box.hidden)); });
+    }
+  }
+
+  const CSS = `
+:root{--m-paper:#121212;--m-ink:#e8e8e8;--m-muted:#8a8a8a;--m-card:#161616;--m-rule:#2a2a2a;--m-lit:#fff;--m-mid:#6a6a6a}
+[data-theme=light]{--m-paper:#f7f7f5;--m-ink:#1a1a1a;--m-muted:#6b6b70;--m-card:#fff;--m-rule:#e2e2e0;--m-lit:#000;--m-mid:#9a9a9f}
+body{margin:0;background:var(--m-paper);color:var(--m-ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}
+.mech{max-width:680px;margin:28px auto;background:var(--m-card);border:1px solid var(--m-rule);border-radius:12px;padding:14px 16px 12px}
+.mech-head,.mech-foot{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--m-muted)}
+.mech-head b{color:var(--m-ink);font-weight:500;margin-left:auto}
+.mech-theme{font:inherit;font-size:11px;color:var(--m-muted);background:transparent;border:1px solid var(--m-rule);border-radius:6px;padding:2px 8px;margin-left:10px;cursor:pointer}
+.mech-stage{outline:none;cursor:grab;margin:6px 0;border-radius:8px}
+.mech-stage:active{cursor:grabbing}.mech-stage:focus-visible{box-shadow:0 0 0 2px var(--m-muted)}
+.mech-stage canvas{display:block;width:100%;height:auto}
+.mech-foot code{font:12px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--m-ink)}
+.mech-keys{display:flex;flex-wrap:wrap;gap:6px 18px;margin:10px 0 4px;font-size:12px;color:var(--m-muted)}
+.mech-keys span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px;background:var(--m-mid)}
+.mech-keys .k-lit::before{background:var(--m-lit)}
+.mech-cap{font-size:13px;color:var(--m-muted);margin:6px 0 0}
+.mech-controls{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin:2px 0 8px;font-size:12px;color:var(--m-muted)}
+.mech-controls button{font:inherit;color:var(--m-ink);background:transparent;border:1px solid var(--m-rule);border-radius:7px;padding:5px 10px;cursor:pointer}
+.mech-controls button[aria-pressed=true]{background:var(--m-ink);color:var(--m-card);border-color:var(--m-ink)}
+.mech-controls input[type=range]{flex:1;min-width:120px;accent-color:var(--m-ink)}
+.mech-controls .sp{flex-basis:100%;height:0}
+.mech-stage{position:relative}
+.mech-over{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.mech-leaders{position:absolute;inset:0;width:100%;height:100%}
+.mech-leaders path{fill:none;stroke:var(--m-muted);stroke-width:1}.mech-leaders circle{fill:var(--m-ink)}
+.mech-label{position:absolute;transform:translateY(-50%);font-size:11.5px;line-height:1.2;white-space:nowrap;color:var(--m-ink);background:var(--m-card);border:1px solid var(--m-rule);border-radius:5px;padding:2px 6px}
+.mech-label.pin{transform:translate(-50%,-50%);background:transparent;border:0;font-weight:500;text-shadow:0 0 4px var(--m-card),0 0 4px var(--m-card)}
+.mech-label.pin.box{background:var(--m-card);border:1px solid var(--m-rule);font-size:12.5px;padding:3px 8px;text-shadow:none}
+.mech-panel{margin:0 0 8px;background:var(--m-card);border:1px solid var(--m-rule);border-radius:9px;padding:9px 11px;font-size:12.5px;line-height:1.45;color:var(--m-muted)}
+.mech-label.can{pointer-events:auto;cursor:pointer}.mech-label.can:hover{border-color:var(--m-ink)}
+.mech-panel .row{margin-top:3px}.mech-panel u{text-decoration:none;color:var(--m-ink);font-weight:600;margin-right:6px}
+.mech-panel small{display:block;margin-top:6px;font-size:11px}.mech-panel small i{font-style:normal;border:1px solid var(--m-rule);border-radius:4px;padding:0 5px;margin-right:5px;color:var(--m-ink)}
+.mech-panel b{display:block;color:var(--m-ink);font-weight:600;font-size:13px;margin-bottom:2px}.mech-panel span{display:block}.mech-panel em{display:block;font-style:normal;color:var(--m-ink);margin-top:4px}
+.mech-lesson{border:1px solid var(--m-rule);border-radius:9px;padding:9px 11px;margin:0 0 8px;font-size:13px}
+.mech-lesson .row{display:flex;align-items:center;gap:8px}.mech-lesson b{font-weight:600}.mech-lesson .n{color:var(--m-muted);font-size:12px;margin-right:auto}
+.mech-lesson button{font:inherit;font-size:12px;color:var(--m-ink);background:transparent;border:1px solid var(--m-rule);border-radius:7px;padding:4px 10px;cursor:pointer}
+.mech-lesson p{margin:6px 0 0;color:var(--m-muted)}
+.mech-sources{border-top:1px solid var(--m-rule);margin-top:10px;padding-top:8px;font-size:12px;color:var(--m-muted)}
+.mech-sources b{color:var(--m-ink);font-weight:600}.mech-sources ul{margin:6px 0 0;padding-left:18px}.mech-sources li{margin:3px 0}
+.mech-sources i{font-style:normal;border:1px solid var(--m-rule);border-radius:4px;padding:0 5px;font-size:11px;margin:0 4px}.mech-sources a{color:var(--m-ink)}`;
+
+  try { const t = localStorage.getItem("mech-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (e) {}
+  global.mech = { VERSION, Figure, card, CSS, THEMES, MATS, boxGeo, cylGeo, tubeGeo, profileGeo, latheGeo, torusGeo, voluteGeo, superSection, sweep, loftGeo, plateGeo, gearGeo, pitchRadius, wrapPath, hop, roundedRect };
+})(window);
+
+</script>
+<script>
+/* How a laser line profiler turns a laser line into heights. Reference model: Gocator 2630 (LMI Technologies).
+   Units: millimetres. World: x is the travel direction of the conveyor, y runs along the laser line, z is up.
+   Sensor frame S: z = 0 is the bottom of the housing, the laser plane is x = 0, the camera sits at +x.
+   Sourced: clearance distance, measurement range, field of view, points per profile, scan rate, Z repeatability, X resolution,
+   imager size, laser colours, connector names, and the general principle (laser line lens, Scheimpflug tilt, peak detection).
+   Illustrative: the housing shape and size, every internal position, the baseline, the lens and the chip size. The maker does not
+   publish them. They are chosen so the model reproduces the published field of view. No product styling or logo is copied. */
+(function () {
+  const D = Math.PI / 180, clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  // ---------- 1. the model: every number on screen comes from here ----------
+  const M = {
+    CD: 110, MR: 130, fovNear: 71, fovFar: 135, points: 4192, megapixels: 9, rateMin: 600, rateMax: 9000, zRep: 0.30, xRes: [18, 33],   // sourced
+    baseline: 75, fNumber: 2.8, fanApex: 20,                                                                                              // illustrative
+    belt: 80, K: 91, dy: 1.5,
+  };
+  M.zNear = -M.CD; M.zFar = -(M.CD + M.MR); M.zMid = (M.zNear + M.zFar) / 2;
+  // The two edges of the field of view are straight lines. They meet at one height above the near end.
+  M.zApex = M.zNear + M.MR * M.fovNear / (M.fovFar - M.fovNear);
+  M.C = [M.baseline, 0, M.zApex];                                    // lens centre. At the apex height, so the chip rows run along x.
+  M.axisLen = Math.hypot(M.C[0], M.C[2] - M.zMid);
+  M.n = [-M.C[0] / M.axisLen, 0, (M.zMid - M.C[2]) / M.axisLen];     // lens axis, from the lens toward the middle of the range
+  M.angle = Math.atan2(M.C[0], M.C[2] - M.zMid);                     // triangulation angle at the middle of the range
+  // Scheimpflug: the laser plane, the lens plane and the chip plane meet in one line. That line is at this height on the laser plane.
+  M.zHinge = M.C[2] + M.C[0] * M.C[0] / (M.C[2] - M.zMid);
+  // The chip plane goes through the hinge line and is parallel to the plane through the lens centre and the apex line.
+  { const ex = M.C[0], ez = M.C[2] - M.zApex, l = Math.hypot(ex, ez); M.e = [ex / l, ez / l]; M.m = [-M.e[1], M.e[0]]; }
+  // project a point (0, y, z) of the laser plane through the lens centre onto the chip plane
+  M.ray = (y, z) => { const dx = M.C[0], dz = M.C[2] - z, s = (M.m[0] * (0 - M.C[0]) + M.m[1] * (M.zHinge - M.C[2])) / (M.m[0] * dx + M.m[1] * dz); return { s, Q: [M.C[0] + s * dx, -s * y, M.C[2] + s * dz] }; };
+  { const a = M.ray(0, M.zNear).Q, b = M.ray(0, M.zFar).Q; M.chip0 = [(a[0] + b[0]) / 2, 0, (a[2] + b[2]) / 2]; M.used = Math.hypot(a[0] - b[0], a[2] - b[2]); }
+  M.project = (y, z) => { const r = M.ray(y, z); return { u: (r.Q[0] - M.chip0[0]) * M.e[0] + (r.Q[2] - M.chip0[2]) * M.e[1], v: r.Q[1], Q: r.Q }; };   // u: along the rows, v: along the columns
+  M.chipPoint = (u, v) => [M.chip0[0] + u * M.e[0], v, M.chip0[2] + u * M.e[1]];
+  // back from the chip to the laser plane: the same lens centre, the other direction
+  M.unproject = (u, v) => { const Q = M.chipPoint(u, v), w = M.C[0] / (Q[0] - M.C[0]); return { y: -w * Q[1], z: M.C[2] + w * (M.C[2] - Q[2]) }; };
+  M.chipW = M.fovNear * M.ray(0, M.zNear).s;                         // chip width that sees exactly 71 mm at the near end
+  M.pitch = M.chipW / M.points; M.rows = Math.round(M.megapixels * 1e6 / M.points); M.chipH = M.rows * M.pitch;
+  M.row = (u) => u / M.pitch + M.rows / 2; M.col = (v) => v / M.pitch + M.points / 2;
+  M.heightOf = (u) => M.unproject(u, 0).z - M.zFar;                  // height above the reference plane, from the row position
+  M.fov = (h) => M.fovFar + (M.fovNear - M.fovFar) * h / M.MR;       // the published trapezoid
+  M.fovModel = (h) => { const u = M.project(0, M.zFar + h).u; return Math.abs(M.unproject(u, M.chipW / 2).y) * 2; };   // the same thing from the chip edges
+  M.vAx = M.ray(0, M.zMid).s * M.axisLen; M.focal = 1 / (1 / M.axisLen + 1 / M.vAx); M.aperture = M.focal / M.fNumber;
+  // thin lens: where does a point of the laser plane come to a sharp focus?
+  M.sharp = (y, z) => { const p = [0 - M.C[0], y, z - M.C[2]], u = p[0] * M.n[0] + p[2] * M.n[2], v = u * M.focal / (u - M.focal); return [M.C[0] - v / u * p[0], -v / u * p[1], M.C[2] - v / u * p[2]]; };
+  M.offChip = (Q) => M.m[0] * (Q[0] - 0) + M.m[1] * (Q[2] - M.zHinge);    // distance of a point from the chip plane
+  M.blurRows = (z) => { const p = [-M.C[0], 0, z - M.C[2]], u = p[0] * M.n[0] + p[2] * M.n[2], v = u * M.focal / (u - M.focal); return M.aperture * Math.abs(v - M.vAx) / v / M.pitch; };   // chip square to the lens
+  M.mmPerRow = (h) => (M.heightOf(M.project(0, M.zFar + h).u + M.pitch) - h);
+  M.fanHalf = Math.atan(0.55 * M.fovFar / (M.fanApex - M.zFar));     // the laser line is a little wider than the field of view
+  M.fanW = (h) => (M.fanApex - (M.zFar + h)) * Math.tan(M.fanHalf);  // half width of the laser line at a height
+  M.spacing = (speed, rate) => speed * 1000 / rate;                  // mm between profiles
+  // the test part, in its own frame: x along travel, z up from the belt
+  M.part = [{ x: [-60, 60], y: [-45, 45], z: [0, 12] }, { x: [-45, -8], y: [-32, 10], z: [12, 40] }, { x: [12, 20], y: [-10, 45], z: [12, 75] }, { x: [34, 54], y: [-45, 45], z: [12, 22] }];
+  M.partH = (xp, y) => { let h = 0; for (const b of M.part) if (xp >= b.x[0] && xp <= b.x[1] && y >= b.y[0] && y <= b.y[1]) h = Math.max(h, b.z[1]); return h; };
+  M.camH = M.CD + M.MR + M.C[2];                                     // lens centre above the belt
+  // can the camera see the lit point (0, y, h) when the part origin is at x = off? Walk the ray toward the lens.
+  M.sees = (off, y, h) => { const sMax = (78 - h) / (M.camH - h); for (let i = 1; i <= 70; i++) { const s = sMax * i / 70, Z = h + s * (M.camH - h); if (M.partH(s * M.C[0] - off, y * (1 - s)) > Z + 0.01) return s; } return 0; };
+  M.sample = (off, y, flatH) => { const h = flatH === undefined ? M.partH(-off, y) : flatH, lit = Math.abs(y) <= M.fanW(h), block = flatH === undefined ? M.sees(off, y, h) : 0; return { y, h, lit, block, valid: lit && !block && Math.abs(y) <= M.fov(h) / 2 + 1e-9 && h <= M.MR }; };
+  // components, in the order of the light path. This is also the order in which a builder fits them. y: the depth each one takes in the housing.
+  M.comps = [
+    { key: "body", name: "Housing body", y: [-20, 24], links: [] },
+    { key: "diode", name: "Laser diode module", y: [-8, 8], links: ["body", "board"] },
+    { key: "line", name: "Line lens", y: [-8, 8], links: ["diode", "body"] },
+    { key: "lwin", name: "Laser window", y: [-20, 20], links: ["line", "body"] },
+    { key: "cwin", name: "Camera window", y: [-20, 20], links: ["body"] },
+    { key: "lens", name: "Camera lens", y: [-10, 10], links: ["cwin", "body"] },
+    { key: "chip", name: "Image chip", y: [-12, 12], links: ["lens", "body"] },
+    { key: "board", name: "Processor board", y: [-18, 20], links: ["chip", "diode", "body"] },
+    { key: "plan", name: "Power/LAN connector", y: [-20, 20], links: ["board", "body"] },
+    { key: "io", name: "I/O connector", y: [-20, 20], links: ["board", "body"] },
+    { key: "cover", name: "Housing cover", y: [-24, -20], links: ["body"] },
+  ];
+  { let front = M.comps[0].y[0]; M.comps.forEach((c, i) => { c.d = i ? c.y[1] - front + 14 : 0; if (i) front = c.y[0] - c.d; }); M.deep = -front; }
+  M.N = M.comps.length - 1;
+  M.asm = (s, j) => (j ? 1 - clamp(s / 100 * M.N - (j - 1), 0, 1) : 0);     // how far apart component j is at slider value s (1 apart, 0 in place)
+  // the signal chain, in order
+  M.chain = [
+    { id: "photons", name: "Laser light" }, { id: "line", name: "Line on the part" }, { id: "lens", name: "Lens" }, { id: "pixels", name: "Pixels" },
+    { id: "peak", name: "Peak detection" }, { id: "cal", name: "Calibration" }, { id: "profile", name: "Profile" }, { id: "tool", name: "Measurement tool" }, { id: "out", name: "Pass or fail out" },
+  ];
+  const LASERS = { blue: { hex: 0x3f66ff, css: "#6f8dff", nm: "about 405 nm", word: "blue" }, red: { hex: 0xff3a2e, css: "#ff5a4e", nm: "about 650 nm", word: "red" } };
+  const state = { stage: 0, labels: true, style: location.hash === "#line" ? "line" : "real", laser: "blue", h: 40, asm: 55, speed: 1, rate: 600, mode: "pass", off: 0, t0: 0, build: null, demo: null, inset: null, beams: {}, light: [], hold: 0 };
+  let F = null;
+
+  function start() {
+    if (F) F.dispose();
+    F = new mech.Figure("#fig", { theme: document.documentElement.dataset.theme || "dark", style: state.style, width: 760, height: 480, azimuth: 32, elevation: 18 });
+    const REAL = state.style === "real", DARK = F.theme === "dark", LZ = LASERS[state.laser], ZS = M.belt + M.CD + M.MR, WARM = 0xff8a2a;
+    const S = F.group({ at: [0, 0, ZS] });
+    const bx = (x0, x1, y0, y1, z0, z1, o) => F.box({ w: x1 - x0, d: y1 - y0, h: z1 - z0, r: o.r || 0 }, Object.assign({ at: [(x0 + x1) / 2, (y0 + y1) / 2, z0] }, o));
+    const f1 = (v) => v.toFixed(1), f2 = (v) => v.toFixed(2);
+
+    // ---------- 2. facts ----------
+    const LMI = "https://lmi3d.com/series/gocator-2600-series/", ATS = "https://www.at-sensors.com/measurement/laser-triangulation/", PHO = "https://www.photonics.com/Articles/Related_Laser_Triangulation_Tackles_Imaging/ar64616", QS = "https://lmi3d.com/wp-content/uploads/2016-08/15173-1.7_Manual_Quickstart_Gocator-2300A-Series.pdf";
+    F.facts([
+      { id: "spec", claim: "Gocator 2630: clearance distance 110 mm, measurement range 130 mm, field of view 71 to 135 mm, 4192 data points per profile, scan rate 600 to 9000 Hz, Z repeatability 0.30 µm, X resolution 18 to 33 µm.", status: "sourced", source: "LMI Technologies, Gocator 2600 series", url: LMI },
+      { id: "imager", claim: "The 2600 series has a 9-megapixel imager. The 2630 comes with a red or a blue laser.", status: "sourced", source: "LMI Technologies, Gocator 2600 series", url: LMI },
+      { id: "rate", claim: "The scan rate range runs from the default setup (full field of view and full range) to a high-speed setup.", status: "sourced", source: "LMI Technologies, Gocator 2600 series", url: LMI },
+      { id: "conn", claim: "The sensor has two connectors, Power/LAN and I/O. In the Gocator 2300 guide, Power/LAN carries power, the laser safety signal and Ethernet. I/O carries the trigger input, the encoder, digital outputs, serial output and analog output.", status: "sourced", source: "LMI Technologies, Gocator 2300 quick start guide", url: QS },
+      { id: "browser", claim: "You set up a Gocator sensor in a web browser.", status: "sourced", source: "LMI Technologies, Gocator 2300 quick start guide", url: QS },
+      { id: "linegen", claim: "A laser diode makes the light. A collimating lens shapes the beam. A cylindrical or Powell lens fans it into a line.", status: "sourced", source: "AT Sensors, laser triangulation", url: ATS },
+      { id: "fpga", claim: "An FPGA or DSP in the sensor head finds the line: a coarse peak, then a sub-pixel position, then real coordinates. Only the profile leaves the head.", status: "sourced", source: "AT Sensors, laser triangulation", url: ATS },
+      { id: "peak", claim: "Each pixel column is searched for its brightest point. A centroid or Gaussian fit then gives the position to a fraction of a pixel.", status: "sourced", source: "AT Sensors, laser triangulation", url: ATS },
+      { id: "scheimpflug", claim: "The image chip is tilted relative to the lens, so the whole laser plane is in focus. This is the Scheimpflug principle.", status: "sourced", source: "Photonics Spectra, Laser Triangulation Tackles Imaging Tasks Big and Small", url: PHO },
+      { id: "angle", claim: "The angle between the laser and the camera view is typically 20 to 30 degrees. A larger baseline gives better precision and more occlusion.", status: "sourced", source: "Photonics Spectra, Laser Triangulation Tackles Imaging Tasks Big and Small", url: PHO },
+      { id: "expo", claim: "A dark surface returns a weak signal and needs more laser power or a longer exposure. A shiny surface can saturate the pixels.", status: "sourced", source: "AT Sensors, laser triangulation", url: ATS },
+      { id: "colour", claim: "Blue light (405 nm) makes less speckle than red and shows fine surface detail. Red is the general-purpose choice with a good signal on most matt surfaces. Blue can make some plastics and coatings glow, and red avoids that.", status: "sourced", source: "AT Sensors, laser triangulation. Speckle: Photonics Spectra.", url: ATS },
+      { id: "apex", claim: "The two edges of the field of view meet " + f1(M.zApex) + " mm above the bottom of the sensor. This follows from 71 mm at 110 mm and 135 mm at 240 mm.", status: "model" },
+      { id: "xres", claim: "Field of view divided by 4192 points gives one point every " + f1(M.fovNear / M.points * 1000) + " µm at the near end and every " + f1(M.fovFar / M.points * 1000) + " µm at the far end. The data sheet lists 18 to 33 µm.", status: "model" },
+      { id: "rows", claim: "9 megapixels divided by 4192 columns gives about " + M.rows + " rows.", status: "model" },
+      { id: "zrow", claim: "In this model one pixel row is " + Math.round(M.mmPerRow(M.MR) * 1000) + " µm of height at the near end and " + Math.round(M.mmPerRow(0) * 1000) + " µm at the far end. Sub-pixel peak detection and averaging give the much finer data sheet value.", status: "model" },
+      { id: "blur", claim: "With the chip square to the lens, the line would blur over about " + Math.round(M.blurRows(M.zNear)) + " pixel rows at the near end of the range.", status: "model", source: "Thin lens at f/" + M.fNumber + ", an assumed aperture." },
+      { id: "spacing", claim: "Distance between two profiles = conveyor speed / scan rate.", status: "model" },
+      { id: "smart", claim: "The measurement tools and the pass or fail decision run inside the sensor head.", status: "assumed", source: "The maker describes the Gocator as a smart sensor with built-in tools. Not confirmed on a page opened for this figure." },
+      { id: "nm", claim: "The blue laser is about 405 nm and the red laser is about 650 nm.", status: "assumed", source: "Typical values for these colours. The 2600 series page does not list the wavelengths." },
+      { id: "seal", claim: "The housing is sealed against dust and water.", status: "assumed", source: "IP67 is listed for the Gocator 2500 series. Not checked for the 2630." },
+      { id: "zero", claim: "Height 0 is the conveyor surface, and the conveyor is at the far end of the range.", status: "illustrative", source: "A choice for this figure. A real sensor reports height in its own frame until you align it." },
+      { id: "layout", claim: "Baseline " + M.baseline + " mm, triangulation angle " + f1(M.angle / D) + "°, focal length " + f1(M.focal) + " mm, a chip of " + f1(M.chipW) + " by " + f1(M.chipH) + " mm with " + f1(M.pitch * 1000) + " µm pixels, and the place of every internal part.", status: "illustrative", source: "Not published by the maker. Chosen so the model reproduces the published field of view." },
+      { id: "shell", claim: "The housing shape and size, the mount, the conveyor, the test part, and which chip on the board does which job.", status: "illustrative" },
+    ]);
+
+    // ---------- 3. checks: the model must agree with the facts ----------
+    const near = M.project(0, M.zNear), far = M.project(0, M.zFar);
+    F.check("height is 0 at the reference plane", Math.abs(M.heightOf(far.u)) < 1e-9, M.heightOf(far.u).toExponential(1) + " mm");
+    F.check("height is 130 mm at the near end", Math.abs(M.heightOf(near.u) - M.MR) < 1e-9);
+    F.check("field of view is 71 mm at the near end", Math.abs(M.fovModel(M.MR) - M.fovNear) < 1e-6, f2(M.fovModel(M.MR)) + " mm");
+    F.check("field of view is 135 mm at the far end", Math.abs(M.fovModel(0) - M.fovFar) < 1e-6, f2(M.fovModel(0)) + " mm");
+    { let worst = 0, onChip = true, trap = 0, focus = 0;
+      for (let h = 0; h <= M.MR; h += 1) {
+        const p = M.project(0, M.zFar + h); worst = Math.max(worst, Math.abs(M.heightOf(p.u) - h)); trap = Math.max(trap, Math.abs(M.fovModel(h) - M.fov(h)));
+        for (const s of [-1, 0, 1]) { const y = s * M.fov(h) / 2, q = M.project(y, M.zFar + h), r = M.row(q.u), c = M.col(q.v); if (r < 0 || r > M.rows || c < -1e-6 || c > M.points + 1e-6) onChip = false; focus = Math.max(focus, Math.abs(M.offChip(M.sharp(y, M.zFar + h)))); }
+      }
+      F.check("the readout height comes back from the chip row at every height", worst < 1e-9, worst.toExponential(1) + " mm worst case");
+      F.check("the line stays on the chip across the full range", onChip, "rows " + Math.round(M.row(far.u)) + " to " + Math.round(M.row(near.u)) + " of " + M.rows);
+      F.check("the field of view is a straight-sided trapezoid", trap < 1e-6);
+      F.check("the tilted chip is in focus across the whole laser plane", focus < 1e-6, focus.toExponential(1) + " mm off the chip plane");
+    }
+    F.check("a higher surface moves the line toward the near side of the chip", near.u > far.u);
+    F.check("the chip is tilted relative to the lens", Math.abs(Math.acos(Math.abs(M.m[0] * M.n[0] + M.m[1] * M.n[2]))) > 5 * D, f1(Math.acos(Math.abs(M.m[0] * M.n[0] + M.m[1] * M.n[2])) / D) + "°");
+    F.check("the laser line is wider than the field of view", M.fanW(0) >= M.fovFar / 2 && M.fanW(M.MR) >= M.fovNear / 2);
+    F.check("model X spacing is within 10% of the data sheet", Math.abs(M.fovNear / M.points * 1000 - M.xRes[0]) / M.xRes[0] < 0.1 && Math.abs(M.fovFar / M.points * 1000 - M.xRes[1]) / M.xRes[1] < 0.1, f1(M.fovNear / M.points * 1000) + " and " + f1(M.fovFar / M.points * 1000) + " µm");
+    { const cw = [44, 80], inWin = [M.zNear, M.zFar].every((z) => [0, 4].every((zz) => { const x = M.C[0] * (zz - z) / (M.C[2] - z); return x - M.aperture / 2 > cw[0] && x + M.aperture / 2 < cw[1]; }));
+      F.check("the camera view passes through the camera window", inWin); }
+    { let gaps = 0, flat = 0; for (let i = 0; i < M.K; i++) { const y = -67.5 + i * M.dy; if (M.sample(-5, y).block) gaps++; if (M.sample(0, y, 30).block) flat++; }
+      F.check("the tall rib hides part of the line from the camera", gaps > 5, gaps + " of " + M.K + " samples");
+      F.check("a flat surface has no hidden samples", flat === 0); }
+    F.check("profile spacing is speed / rate", Math.abs(M.spacing(1, 600) - 1000 / 600) < 1e-9 && M.spacing(2.5, 150) > 10 * M.spacing(1, 600) - 1e-9);
+    F.check("at 100 on the Assembly slider every part is at its Inside position", M.comps.every((c, j) => M.asm(100, j) === 0));
+    F.check("at 0 on the Assembly slider every part is apart", M.comps.every((c, j) => !j || M.asm(0, j) === 1));
+
+    // ---------- 4. surroundings: conveyor, mount, test part ----------
+    const B = M.belt;
+    bx(-320, 320, -100, 100, B - 6, B, { mat: "rubber", tag: "conv", info: "conveyor" });
+    for (const s of [-1, 1]) { bx(-330, 330, s * 107 - 5, s * 107 + 5, B - 24, B + 2, { mat: "steel", tag: "conv", info: "conveyor" }); F.cyl({ r: 13, h: 204, n: 24, axis: "y" }, { mat: "steel", tag: "conv", info: "conveyor", at: [s * 320, -102, B - 14] }); for (const e of [-1, 1]) bx(e * 285 - 6, e * 285 + 6, s * 107 - 6, s * 107 + 6, 0, B - 24, { mat: "darkSteel", tag: "conv", info: "conveyor" }); }
+    const stripes = []; for (let i = 0; i < 8; i++) stripes.push(bx(-1.5, 1.5, -98, 98, B, B + 0.5, { tone: "mid", tag: "conv", info: "conveyor", edges: false, shadow: false }));
+    bx(-20, 100, 90, 210, 0, 8, { mat: "darkSteel", tag: "mount", info: "mount", r: 6 });
+    bx(25, 55, 135, 165, 8, ZS + 112, { mat: "darkSteel", tag: "mount", info: "mount", r: 4 });
+    bx(14, 66, 30, 135, ZS + 34, ZS + 56, { mat: "castAl", tag: "mount", info: "mount", r: 3 });
+    bx(-10, 90, 24, 30, ZS + 14, ZS + 76, { mat: "castAl", tag: "mount", info: "mount" });
+    F.tube([[150, 0, ZS + 61], [176, 0, ZS + 61], [192, 44, ZS + 76], [190, 128, ZS + 88], [56, 152, ZS + 96]], 3, { mat: "plastic", tag: "cable", info: "cable" });
+    F.tube([[150, 0, ZS + 31], [172, 0, ZS + 31], [184, 48, ZS + 44], [182, 126, ZS + 60], [56, 148, ZS + 70]], 3, { mat: "plastic", tag: "cable", info: "cable" });
+    const P = F.group({ at: [0, 0, B] });
+    for (const b of M.part) bx(b.x[0], b.x[1], b.y[0], b.y[1], b.z[0], b.z[1], { mat: "darkSteel", tag: "part", info: "part", group: P });
+    const riser = bx(-55, 55, -75, 75, 0, 1, { mat: "steel", tag: "riser", info: "riser" }); riser.position.z = B;
+
+    // ---------- 5. the sensor: eleven components, each in its own group so it can move out along y ----------
+    const G = {}, meshes = {};
+    M.comps.forEach((c) => { G[c.key] = F.group({ group: S, explode: [0, -c.d, 0], channel: "c_" + c.key, info: c.key }); F.to("c_" + c.key, 0); });
+    const add = (key, info) => (o) => Object.assign({ group: G[key], tag: "c_" + key }, info ? { info } : {}, o);
+    // body: back plate, walls with gaps for the windows and the connectors, and the seats for the optics
+    { const o = add("body");
+      bx(-34, 136, 20, 24, 0, 90, o({ mat: "castAl" })); bx(-34, -30, -20, 20, 0, 90, o({ mat: "castAl" })); bx(-30, 132, -20, 20, 86, 90, o({ mat: "castAl" }));
+      for (const [a, b] of [[-30, -12], [12, 44], [80, 136]]) bx(a, b, -20, 20, 0, 4, o({ mat: "castAl" }));
+      for (const [a, b] of [[4, 20], [42, 50], [72, 90]]) bx(132, 136, -20, 20, a, b, o({ mat: "castAl" }));
+      bx(-10, 10, 9, 20, 12, 66, o({ mat: "darkSteel" })); bx(62, 88, 10, 20, 24, 46, o({ mat: "darkSteel" })); bx(76, 93, 12, 20, 58, 66, o({ mat: "darkSteel" })); }
+    // laser diode module: the diode, and a collimating lens in one barrel
+    { const o = add("diode");
+      F.lathe([[5.5, 34], [8, 34], [8, 62], [5.5, 62]], { n: 28 }, o({ mat: "darkSteel" }));
+      F.cyl({ r: 4.5, h: 8, n: 20 }, o({ mat: "brass", at: [0, 0, 60] }));
+      F.cyl({ r: 5.5, h: 2, n: 24 }, o({ mat: "glass", at: [0, 0, 36], info: "collimator" }));
+      for (const s of [-1, 1]) bx(s * 2 - 0.5, s * 2 + 0.5, -0.5, 0.5, 68, 74, o({ mat: "brass", edges: false })); }
+    // line lens: a glass rod in a ring. The rod lies along x, so it spreads the beam along y.
+    { const o = add("line"); F.lathe([[5, 16], [8, 16], [8, 24], [5, 24]], { n: 28 }, o({ mat: "machined" })); F.cyl({ r: 3, h: 10, n: 16, axis: "x" }, o({ mat: "glass", at: [-5, 0, 20] })); }
+    for (const [key, a, b] of [["lwin", -12, 12], ["cwin", 44, 80]]) { const o = add(key); bx(a, b, -20, 20, 0, 4, o({ mat: "glass" })); for (const x of [a, b - 1.5]) bx(x, x + 1.5, -20, 20, 4, 5, o({ mat: "rubber", edges: false })); }
+    // camera lens: a barrel on the line from the lens centre to the middle of the range
+    const gLens = F.group({ group: G.lens, at: M.C, rot: [0, M.angle, 0] });
+    { const o = (x) => Object.assign({ group: gLens, tag: "c_lens" }, x);
+      F.lathe([[6.5, -12], [10, -12], [10, 12], [6.5, 12]], { n: 32 }, o({ mat: "darkSteel" })); F.lathe([[10, -3], [10.01, -3], [10.01, 3], [10, 3]], { n: 32 }, o({ mat: "machined", edges: false }));
+      F.cyl({ r: 6.5, h: 2.5, n: 28 }, o({ mat: "glass", at: [0, 0, -11] })); F.cyl({ r: 6.5, h: 2.5, n: 28 }, o({ mat: "glass", at: [0, 0, 8] })); }
+    // image chip on its small board, with a flex tail up to the processor board
+    const zc = M.chip0[2], xc = M.chip0[0];
+    { const o = add("chip");
+      bx(xc - 12.5, xc + 12.5, -12, 12, zc + 1.6, zc + 3.2, o({ color: 0x1d5136 }));
+      bx(xc - M.chipH / 2 - 2, xc + M.chipH / 2 + 2, -8.5, 8.5, zc + 0.14, zc + 1.6, o({ mat: "plastic" }));
+      meshes.die = bx(xc - M.chipH / 2, xc + M.chipH / 2, -M.chipW / 2, M.chipW / 2, zc, zc + 0.14, o({ mat: "machined", edges: false }));
+      bx(xc + 6.5, xc + 12.5, -6, 6, zc + 3.2, 74, o({ mat: "brass", info: "flex" })); }
+    // processor board: lies under the top wall, parts on its underside
+    { const o = add("board");
+      bx(-28, 130, -18, 20, 74, 75.6, o({ color: 0x1d5136 }));
+      meshes.fpga = bx(58, 74, -8, 8, 71, 74, o({ mat: "plastic", info: "fpga" })); meshes.cal = bx(39, 49, -5, 5, 71.6, 74, o({ mat: "plastic", info: "cal" })); meshes.cpu = bx(14, 30, -8, 8, 71, 74, o({ mat: "plastic", info: "cpu" }));
+      bx(-23, -13, -5, 5, 71.6, 74, o({ mat: "plastic", info: "driver" })); bx(112, 128, 2, 16, 70.5, 74, o({ mat: "steel", info: "board" })); }
+    // connectors: a block that fills a gap in the end wall, with a round shell outside and a stub inside
+    for (const [key, z] of [["plan", 61], ["io", 31]]) { const o = add(key);
+      bx(132, 136, -20, 20, z - 11, z + 11, o({ mat: "castAl" })); F.cyl({ r: 8, h: 14, n: 28, axis: "x" }, o({ mat: "steel", at: [136, 0, z] })); F.cyl({ r: 5.5, h: 1, n: 20, axis: "x" }, o({ mat: "plastic", at: [150, 0, z], edges: false })); F.cyl({ r: 5, h: 8, n: 20, axis: "x" }, o({ mat: "plastic", at: [124, 0, z] })); }
+    { const o = add("cover"); bx(-34, 136, -24, -20, 0, 90, o({ mat: "castAl" })); for (const x of [-28, 51, 130]) for (const z of [6, 84]) F.cyl({ r: 2, h: 1, n: 10, axis: "y" }, o({ mat: "steel", at: [x, -25, z], edges: false })); }
+
+    // no two components overlap at any value of the Assembly slider
+    F.root.updateMatrixWorld(true);
+    { const boxes = M.comps.map((c) => { const l = []; G[c.key].traverse((m) => { if (m.isMesh) { m.geometry.computeBoundingBox(); l.push(m.geometry.boundingBox.clone().applyMatrix4(m.matrixWorld).expandByScalar(-0.05)); } }); return l; });
+      let bad = ""; const t = new THREE.Box3(), sh = new THREE.Vector3();
+      for (let s = 0; s <= 100 && !bad; s++) for (let i = 0; i < boxes.length && !bad; i++) for (let j = i + 1; j < boxes.length && !bad; j++) { sh.set(0, -M.comps[j].d * M.asm(s, j) + M.comps[i].d * M.asm(s, i), 0); for (const a of boxes[i]) for (const b of boxes[j]) if (t.copy(b).translate(sh).intersectsBox(a)) bad = M.comps[i].key + " and " + M.comps[j].key + " at " + s; }
+      F.check("no two parts overlap at any value of the Assembly slider", !bad, bad || "101 slider values, " + boxes.reduce((n, l) => n + l.length, 0) + " shapes"); }
+
+    // ---------- 6. light: laser fan, laser line, camera rays, the line on the chip. All positions come from the model. ----------
+    const lightMesh = (m, k = 1) => { m.material.color.setHex(0); m.material.emissive.setHex(LZ.hex).multiplyScalar(k); m.material.toneMapped = false; m.frustumCulled = false; return m; };
+    const dynGeo = (n, idx) => { const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(new Float32Array(n * 3), 3)); g.setIndex(idx); return g; };
+    const setV = (g, pts) => { const a = g.attributes.position; pts.forEach((p, i) => a.setXYZ(i, p[0], p[1], p[2])); a.needsUpdate = true; g.computeVertexNormals(); g.computeBoundingSphere(); g.computeBoundingBox(); };
+    const fan = lightMesh(F.add(dynGeo(3, [0, 1, 2]), { color: LZ.hex, side: "double", tag: "flow", edges: false, shadow: false }), 0.9); F.ghost(fan, 0.3);
+    const beamIn = lightMesh(F.link([0, 0, ZS + 60], [0, 0, ZS + M.fanApex], { w: 1.2, d: 1.2, r: 0.5 }, { color: LZ.hex, tag: "flow", edges: false, shadow: false }));
+    const segs = []; for (let i = 0; i < M.K; i++) segs.push(lightMesh(bx(-1, 1, -M.dy / 2, M.dy / 2, 0, 1.3, { color: LZ.hex, tag: "flow", edges: false, shadow: false })));
+    const rays = [0, 1, 2].map(() => lightMesh(F.link([0, 0, 0], [1, 0, 0], { w: 0.7, d: 0.7, r: 0.3 }, { color: LZ.hex, tag: "flow", edges: false, shadow: false }), 0.8));
+    const chipLine = lightMesh(F.box({ w: 0.35, d: 1, h: 0.25 }, { color: LZ.hex, tag: "flow", edges: false, shadow: false, group: S }));
+    // the spec sheet, drawn at full size in the laser plane
+    const spec = (o) => Object.assign({ tag: "spec", edges: false, shadow: false, info: "fov" }, o);
+    const zN = ZS + M.zNear, zF = ZS + M.zFar, trapPts = [[0, -M.fovNear / 2, zN], [0, M.fovNear / 2, zN], [0, M.fovFar / 2, zF], [0, -M.fovFar / 2, zF]];
+    { const g = dynGeo(4, [0, 1, 2, 0, 2, 3]); setV(g, trapPts); g.computeVertexNormals(); meshes.trap = lightMesh(F.add(g, spec({ color: LZ.hex, side: "double" }))); }
+    trapPts.forEach((p, i) => F.link(p, trapPts[(i + 1) % 4], { w: 1, d: 1, r: 0.4 }, spec({ tone: "hi", lit: true })));
+    const dimY = 86, dim = (z0, z1, info) => { F.link([0, dimY, z0], [0, dimY, z1], { w: 0.9, d: 0.9, r: 0.3 }, spec({ lit: true, info })); for (const z of [z0, z1]) F.link([0, dimY - 7, z], [0, dimY + 7, z], { w: 0.9, d: 0.9, r: 0.3 }, spec({ lit: true, info })); };
+    dim(ZS, zN, "cd"); dim(zN, zF, "mr");
+    // the scan: one small box for each measured point, carried by the part
+    const MAXP = 170, inst = new THREE.InstancedMesh(new THREE.BoxGeometry(0.7, M.dy * 0.92, 1.2), new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false }), MAXP * 62);
+    inst.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(MAXP * 62 * 3), 3); inst.userData.tag = "flow"; inst.count = 0; inst.frustumCulled = false; inst.visible = false; P.add(inst);
+    const scan = { n: 0, start: -100, drawn: 0 }, mat4 = new THREE.Matrix4(), colr = new THREE.Color(), cLo = new THREE.Color(LZ.hex), cHi = new THREE.Color(0xffffff);
+    function scanTo(off, gap) {                       // add every profile that was triggered up to this part position
+      while (scan.start + scan.n * gap <= off && scan.n < MAXP) {
+        const at = scan.start + scan.n * gap; scan.n++;
+        if (Math.abs(at) > 62) continue;
+        for (let i = 0; i < M.K; i++) { const y = -67.5 + i * M.dy, s = M.sample(at, y); if (!s.valid || s.h <= 0 || scan.drawn >= inst.instanceMatrix.count) continue; mat4.makeTranslation(-at, y, s.h + 0.5); inst.setMatrixAt(scan.drawn, mat4); inst.setColorAt(scan.drawn, colr.copy(cLo).lerp(cHi, Math.pow(s.h / 75, 0.8) * 0.85)); scan.drawn++; }
+      }
+      inst.count = scan.drawn; inst.instanceMatrix.needsUpdate = true; if (inst.instanceColor) inst.instanceColor.needsUpdate = true;
+    }
+    const scanReset = () => { scan.n = 0; scan.drawn = 0; inst.count = 0; };
+
+    // the signal chain as moving dots. The waypoints are in the sensor frame.
+    const Qf = M.project(0, M.zFar).Q, way = [
+      { id: "photons", p: [0, 0, 62] }, { p: [0, 0, 22] }, { id: "line", p: [0, 0, M.zFar] }, { p: [M.C[0] * 0.85, 0, M.zFar + (M.C[2] - M.zFar) * 0.85] }, { id: "lens", p: M.C }, { id: "pixels", p: [Qf[0], 0, Qf[2] + 0.5] },
+      { p: [xc + 9.5, 0, zc + 4] }, { p: [xc + 9.5, 0, 72] }, { id: "peak", p: [66, 0, 70] }, { id: "cal", p: [44, 0, 70] }, { id: "profile", p: [34, 0, 70] }, { id: "tool", p: [22, 0, 70] },
+      { p: [22, 12, 70] }, { p: [100, 14, 69] }, { p: [122, 9, 66] }, { p: [128, 0, 36] }, { id: "out", p: [152, 0, 31] },
+    ];
+    const chainFlow = F.flow(way.map((w) => w.p), { group: S, set: "chain", color: WARM, count: 16, speed: 0.07, r: 1.7 });
+    { const ids = way.filter((w) => w.id).map((w) => w.id), same = ids.join() === M.chain.map((c) => c.id).join(); let last = -1, rising = true;
+      for (const w of way.filter((x) => x.id)) { let best = 0, bd = 1e9; for (let k = 0; k <= 600; k++) { const q = chainFlow.curve.getPointAt(k / 600), d = Math.hypot(q.x - w.p[0], q.y - w.p[1], q.z - w.p[2]); if (d < bd) { bd = d; best = k; } } if (best <= last) rising = false; last = best; }
+      F.check("the flow dots pass the stations in the order of the signal chain list", same && rising, ids.length + " stations"); }
+
+    // ---------- 7. what each part is ----------
+    const nm = Object.fromEntries(M.comps.map((c) => [c.key, c.name]));
+    F.facts([{ id: "calib", claim: "A sensor of this type gets its calibration table at the factory.", status: "assumed", source: "Usual practice. Not looked up for the 2630." }]);
+    F.describe({
+      body: { name: nm.body, what: "The metal case of the sensor.", does: "It holds the laser, the lens and the chip at fixed distances and angles.", how: "It is one rigid frame, so the geometry does not change after calibration.", fact: "The shape here is generic. It is not the product design.", src: ["shell", "seal"] },
+      cover: { name: nm.cover, what: "The second half of the case.", does: "It closes the housing.", how: "It presses on a seal between the two halves.", src: ["seal"] },
+      diode: { name: nm.diode, what: "A laser diode and a small lens in one barrel.", does: "It makes the laser light.", how: "The diode turns current into light. The lens makes the beam narrow and parallel.", fact: "The 2630 comes with a blue or a red laser.", src: ["linegen", "imager"] },
+      collimator: { name: "Collimating lens", what: "A small lens in front of the laser diode.", does: "It shapes the light into a narrow beam.", how: "Light spreads out from the diode. The lens bends it into a parallel beam.", src: ["linegen"] },
+      line: { name: nm.line, what: "A cylindrical or Powell lens.", does: "It turns the beam into a line.", how: "It spreads the light in one direction only. The result is a flat fan of light: the laser plane.", src: ["linegen"] },
+      lwin: { name: nm.lwin, what: "A glass window in the bottom of the housing.", does: "It lets the laser plane out.", how: "Glass lets the light through and keeps dust and water out.", src: ["seal"] },
+      cwin: { name: nm.cwin, what: "A second glass window, next to the laser window.", does: "It lets light from the part come back in.", how: "The part scatters the laser light. Some of that light goes through this window to the camera lens." },
+      lens: { name: nm.lens, what: "The lens of the camera.", does: "It makes an image of the laser line on the image chip.", how: "It looks at the laser plane from the side. So a change in height moves the line in the image.", fact: "Typical angle to the laser: 20 to 30 degrees. This figure uses about " + Math.round(M.angle / D) + ". A bigger angle gives more line shift for each millimetre, and longer blind zones.", src: ["angle", "layout"] },
+      chip: { name: nm.chip, what: "A grid of light-sensitive pixels.", does: "It turns the image of the laser line into numbers: one brightness value for each pixel.", how: "The column gives the place along the line. The row gives the height. The chip is tilted, so the whole laser plane is in focus.", fact: "9 megapixels. 4192 points across. About " + M.rows + " rows in this model.", src: ["imager", "spec", "scheimpflug", "rows"] },
+      flex: { name: "Flex cable", what: "A flat, flexible cable.", does: "It carries the pixel values from the chip to the processor board.", src: ["shell"] },
+      board: { name: nm.board, what: "The computer inside the sensor head.", does: "It turns each camera frame into a profile and a result.", how: "It finds the line in every pixel column, converts pixels to millimetres and runs the measurement.", fact: "In sensors of this type, the head sends out the profile, not the raw image.", src: ["fpga", "smart"] },
+      fpga: { name: "Peak finder", what: "A fast logic chip: an FPGA or DSP.", does: "It finds the laser line in every pixel column.", how: "It looks for the brightest row in the column. Then it refines that position to a fraction of a pixel.", fact: "A dark part gives a weak peak. A shiny part can saturate the pixels.", src: ["peak", "fpga", "expo", "shell"] },
+      cal: { name: "Calibration table", what: "Correction data that the sensor keeps in memory.", does: "It turns a chip position (column, row) into millimetres (X, Z).", how: "The table holds the real position for each place on the chip.", src: ["fpga", "calib"] },
+      cpu: { name: "Processor", what: "The main processor on the board.", does: "It builds the profile, runs a measurement tool and compares the result with the limits.", how: "A tool takes one value from the profile, for example a height, a width or a gap.", src: ["smart"] },
+      driver: { name: "Laser driver", what: "The circuit that powers the laser diode.", does: "It switches the laser on and sets its power.", src: ["shell"] },
+      plan: { name: nm.plan, what: "The connector for power and network.", does: "It brings in power and the laser safety signal, and it carries Ethernet.", how: "You open the setup pages of the sensor in a web browser, over this Ethernet link.", src: ["conn", "browser"] },
+      io: { name: nm.io, what: "The connector for signals to and from the production line.", does: "It takes a trigger or encoder signal in, and it sends results out.", how: "The outputs are digital, serial and analog signals.", src: ["conn"] },
+      mount: { name: "Mount", what: "A post and an arm.", does: "It holds the sensor still above the conveyor, at the right distance from the parts.", src: ["shell"] },
+      cable: { name: "Cordsets", what: "Two cables.", does: "One goes to the Power/LAN connector. One goes to the I/O connector.", src: ["conn"] },
+      conveyor: { name: "Conveyor", what: "A moving belt.", does: "It moves the part through the laser plane.", how: "The sensor measures one slice at a time. The motion gives the third dimension.", src: ["shell"] },
+      part: { name: "Test part", what: "A made-up part with a pad, a step and a tall rib.", does: "It gives the sensor a shape to measure.", how: "The rib is there to show a blind zone.", src: ["shell"] },
+      riser: { name: "Flat test surface", what: "A flat block.", does: "Its top is the surface that the sensor measures in this view.", how: "The Surface height slider sets how high the top is.", src: ["shell"] },
+      fov: { name: "Field of view", what: "The area in the laser plane that the camera can see.", does: "It sets how wide a part can be.", how: "It is a trapezoid: narrow near the sensor, wide far from it. The same 4192 points cover both widths, so the points are closer together at the near end.", fact: "71 mm wide at the near end. 135 mm at the far end.", src: ["spec", "xres"] },
+      cd: { name: "Clearance distance", what: "The gap from the sensor to the start of the measurement range.", does: "It tells you how far above the part to mount the sensor.", how: "The sensor cannot measure anything closer than this.", fact: "110 mm.", src: ["spec"] },
+      mr: { name: "Measurement range", what: "The span of heights that the sensor can measure.", does: "It sets how tall a part can be.", how: "The image of the laser line must stay on the chip. Outside this span, it does not.", fact: "130 mm.", src: ["spec"] },
+    });
+    // labels
+    F.label("mount", { set: "line", on: [40, 135, ZS - 70] }); F.label("body", { set: "line", text: "Sensor", on: [-10, -24, ZS + 50] }); F.label("conveyor", { set: "line", on: [-230, -70, B] }); F.label("part", { set: "line" });
+    const LL = F.label("laserline", { set: "line", text: "Laser line", on: [0, -30, B + 14] });
+    F.label("body", { set: "out", text: "Sealed housing", on: [20, -24, ZS + 60] }); F.label("lwin", { set: "out", on: [0, -6, ZS] }); F.label("cwin", { set: "out", on: [62, -6, ZS] }); F.label("plan", { set: "out", on: [150, 0, ZS + 61] }); F.label("io", { set: "out", on: [150, 0, ZS + 31] }); F.label("cable", { set: "out", on: [176, 0, ZS + 61] });
+    for (const k of ["diode", "line", "lwin", "cwin", "lens", "chip", "board", "io"]) F.label(k, { set: "in" });
+    M.comps.forEach((c) => F.label(c.key, c.key === "chip" ? { set: "apart", on: G.chip, offset: [-9, -4, -1] } : { set: "apart" }));
+    F.label("fov", { set: "tri", text: "Laser plane", on: [0, -34, ZS - 150], pin: true, box: true }); F.label("lens", { set: "tri", text: "Camera view", on: [M.C[0] * 0.5 + 16, 0, ZS + M.zMid + (M.C[2] - M.zMid) * 0.5], pin: true, box: true });
+    F.label("lens", { set: "tri" }); F.label("chip", { set: "tri" });
+    const LT = F.label("riser", { set: "tri", text: "Laser line on the surface", on: [0, -40, B + 40] });
+    F.label("cd", { set: "spec", text: "Clearance distance 110 mm", on: [0, dimY, (ZS + zN) / 2], pin: true, box: true }); F.label("mr", { set: "spec", text: "Measurement range 130 mm", on: [0, dimY, (zN + zF) / 2], pin: true, box: true });
+    F.label("fov", { set: "spec", text: "Field of view 71 mm", on: [0, 0, zN + 9], pin: true, box: true }); F.label("fov", { set: "spec", text: "Field of view 135 mm", on: [0, 0, zF + 9], pin: true, box: true });
+    F.label("conveyor", { set: "scan", on: [-100, -80, B] }); F.label("part", { set: "scan" }); F.label("fov", { set: "scan", text: "Laser plane", on: [0, 30, B + 120] });
+    way.filter((w) => w.id).forEach((w, i) => F.label(w.id, { set: "chain", text: (i + 1) + " " + M.chain[i].name, on: [w.p[0], w.p[1], ZS + w.p[2]] }));
+
+    // ---------- 8. the chip inset: the image chip, seen face on ----------
+    const inset = document.createElement("canvas"), IW = 300, IH = 150, dpr = Math.min(devicePixelRatio || 1, 2); inset.width = IW * dpr; inset.height = IH * dpr;
+    inset.style.cssText = "position:absolute;left:8px;top:8px;width:" + IW + "px;height:" + IH + "px;border:1px solid var(--m-rule);border-radius:8px;background:var(--m-card);pointer-events:none;display:none"; F.stage.appendChild(inset);
+    const cx2 = inset.getContext("2d"), INK = DARK ? "#e8e8e8" : "#1a1a1a", MUTED = DARK ? "#8a8a8a" : "#6b6b70", RULE = DARK ? "#2f2f2f" : "#dcdcd8";
+    function drawInset(samples, mode) {
+      const c = cx2, X0 = 12, Y0 = 26, CW = 178, CH = CW * M.chipH / M.chipW, py = (u) => Y0 + CH / 2 - u / M.chipH * CH, px = (v) => X0 + CW / 2 - v / M.chipW * CW;
+      c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, IW, IH); c.font = "11px -apple-system,Segoe UI,sans-serif"; c.textBaseline = "middle";
+      c.fillStyle = INK; c.fillText("Image chip, face on", X0, 13);
+      c.fillStyle = DARK ? "#0b0b0c" : "#f1f1ee"; c.fillRect(X0, Y0, CW, CH); c.strokeStyle = RULE; c.lineWidth = 1; c.strokeRect(X0 + 0.5, Y0 + 0.5, CW - 1, CH - 1);
+      c.setLineDash([3, 3]); c.strokeStyle = MUTED; for (const u of [near.u, far.u]) { c.beginPath(); c.moveTo(X0, py(u)); c.lineTo(X0 + CW, py(u)); c.stroke(); } c.setLineDash([]);
+      c.fillStyle = MUTED; c.font = "10px -apple-system,Segoe UI,sans-serif"; c.fillText("130 mm row", X0 + 4, py(near.u) + 8); c.fillText("0 mm row", X0 + 4, py(far.u) - 8);
+      c.fillStyle = LZ.css; c.shadowColor = LZ.css; c.shadowBlur = 5; let mid = null;
+      for (const s of samples) { if (!s.valid) continue; const q = M.project(s.y, M.zFar + s.h); c.fillRect(px(q.v) - 1.6, py(q.u) - 1.2, 3.2, 2.4); if (mid === null || Math.abs(s.y) < Math.abs(mid.y)) mid = Object.assign({ u: q.u, v: q.v }, s); }
+      c.shadowBlur = 0;
+      c.fillStyle = MUTED; c.fillText(mode === "peak" ? "orange: the column on the right" : "row = height        column = place on the line", X0, Y0 + CH + 13);
+      const GX = X0 + CW + 14, GW = IW - GX - 10;
+      if (mode === "peak" && mid) {                    // three exposure cases for one column: brightness against row
+        c.strokeStyle = WARMC; c.beginPath(); c.moveTo(px(mid.v) + 0.5, Y0); c.lineTo(px(mid.v) + 0.5, Y0 + CH); c.stroke();
+        [["dark part: weak", 0.22], ["good exposure", 0.8], ["shiny: saturated", 3]].forEach(([word, amp], k) => { const gy = 24 + k * 42, base = gy + 36; c.strokeStyle = RULE; c.beginPath(); c.moveTo(GX, base + 0.5); c.lineTo(GX + GW, base + 0.5); c.stroke();
+          c.strokeStyle = LZ.css; c.lineWidth = 1.5; c.beginPath(); for (let i = 0; i <= GW; i++) { const v = Math.min(1, amp * Math.exp(-Math.pow((i - GW / 2) / 7, 2))) + 0.04 * Math.sin(i * 1.9 + k); c.lineTo(GX + i, base - v * 20); } c.stroke(); c.lineWidth = 1;
+          c.fillStyle = MUTED; c.fillText(word, GX, gy + 6); });
+        c.fillStyle = INK; c.fillText("One column", GX, 13);
+      } else if (mid) {
+        c.fillStyle = INK; c.font = "11px -apple-system,Segoe UI,sans-serif"; c.fillText("row " + Math.round(M.row(mid.u)), GX, Y0 + 12); c.fillStyle = MUTED; c.fillText("of " + M.rows, GX, Y0 + 28);
+        c.fillStyle = INK; c.fillText(f1(M.heightOf(mid.u)) + " mm", GX, Y0 + 52); c.fillStyle = MUTED; c.fillText("height", GX, Y0 + 68);
+      }
+      const gaps = samples.filter((s) => s.block && s.lit).length; if (gaps) { c.fillStyle = WARMC; c.fillText(gaps + " points: no data", GX, Y0 + 92); }
+    }
+    const WARMC = "#ff8a2a";
+
+    // ---------- 9. running: read the state, move the parts, write the readout ----------
+    const setCh = (name, v) => { const c = F.channels[name]; c.v = c.to = v; };
+    const vis = (m, on) => { if (m.visible !== on) m.visible = on; };
+    let beltPhase = 0, samples = [];
+    F.onFrame((dt, t) => {
+      const still = F.snap || F.reduced, bm = state.beams, gap = M.spacing(state.speed, state.rate), gapDraw = Math.max(gap, 0.8);
+      // the part and the belt
+      let moving = 0;
+      if (state.mode === "pass" || state.mode === "scan") {
+        if (state.hold > 0) { state.hold -= dt; if (state.hold <= 0) { state.off = -100; scanReset(); F.ghost("part", 1); } }
+        else { moving = 50; state.off = still ? state.stillOff : state.off + moving * dt; if (state.off > 110) { state.hold = state.mode === "scan" ? 3.2 : 0.01; if (state.mode === "scan") F.ghost("part", 0.07); } }
+        if (state.mode === "scan") scanTo(Math.min(state.off, 110), gapDraw);
+      }
+      vis(inst, state.mode === "scan");
+      P.position.x = state.off; beltPhase = (beltPhase + moving * dt) % 80;
+      stripes.forEach((s, i) => { s.position.x = -320 + ((i * 80 + beltPhase) % 640); });
+      // demos
+      if (state.demo === "height") { state.h = still ? 95 : 65 + 60 * Math.sin(t * 0.8); syncSliders(); }
+      if (state.build !== null) { const k = still ? 0.5 : clamp(1.25 - ((t - state.t0) % 3.4) / 1.3, 0, 1); M.comps.forEach((c, j) => j && setCh("c_" + c.key, j < state.build ? 0 : j > state.build ? 1 : k * k * (3 - 2 * k))); }
+      // the surface under the laser
+      const flat = state.mode === "flat", h = clamp(state.h, 0, M.MR);
+      riser.scale.z = Math.max(h, 0.3);
+      samples = []; for (let i = 0; i < M.K; i++) samples.push(M.sample(state.off, -67.5 + i * M.dy, flat ? h : state.mode === "none" ? 0 : undefined));
+      // laser fan and line
+      const hMin = flat ? h : 0, wl = M.fanW(hMin);
+      setV(fan.geometry, [[0, 0, ZS + M.fanApex], [0, -wl, B + hMin], [0, wl, B + hMin]]); vis(fan, !!bm.fan); vis(beamIn, !!bm.inner);
+      samples.forEach((s, i) => { const m = segs[i]; vis(m, !!bm.line && s.lit); if (!m.visible) return; m.position.set(0, s.y, B + s.h); const dead = !!s.block; if (m.userData.dead !== dead) { m.userData.dead = dead; m.material.emissive.setHex(dead ? WARM : LZ.hex); } });
+      // three camera rays: from the line, through the lens centre, to the chip. A blocked ray stops at the edge that blocks it.
+      const pick = flat ? [-0.4 * M.fov(h), 0, 0.4 * M.fov(h)] : [-39, 21, 36];
+      rays.forEach((r, i) => { const s = samples[Math.round((pick[i] + 67.5) / M.dy)]; vis(r, !!bm.rays && s.lit); if (!r.visible) return; const a = [0, s.y, B + s.h], c = [M.C[0], 0, ZS + M.C[2]];
+        if (s.block) { r.setEnds(a, [a[0] + s.block * (c[0] - a[0]), a[1] + s.block * (c[1] - a[1]), a[2] + s.block * (c[2] - a[2])]); r.material.emissive.setHex(WARM); }
+        else { const q = M.project(s.y, M.zFar + s.h).Q; r.setEnds(a, [q[0], q[1], ZS + q[2]]); r.material.emissive.setHex(LZ.hex); } });
+      const pc = M.project(0, M.zFar + h); chipLine.position.set(pc.Q[0], 0, pc.Q[2] - 0.25); chipLine.scale.y = M.chipW; vis(chipLine, !!bm.rays && flat);
+      LL.world.set(0, -30, B + M.partH(-state.off, -30) + 1); LT.world.set(0, -0.45 * M.fov(h), B + h + 1);
+      if (state.inset) drawInset(samples, state.inset);
+      // readout: words and numbers from the model, from the same instant
+      const u = pc.u, lz = LZ.word + " laser, " + LZ.nm;
+      const S7 = "one profile every " + (gap < 1 ? f2(gap) : f1(gap)) + " mm";
+      let txt = "";
+      if (state.build !== null) { const c = M.comps[state.build]; txt = state.build >= M.comps.length ? "all " + M.comps.length + " parts in place · laser on · first profile" : "part " + (state.build + 1) + " of " + M.comps.length + ": " + c.name + (c.links.length ? " · connects to " + c.links.map((k) => nm[k].toLowerCase()).join(", ") : " · everything mounts on it"); }
+      else if (state.view === "asm") { const pos = state.asm / 100 * M.N, j = Math.min(M.N, Math.floor(pos) + 1), c = M.comps[j]; txt = state.asm >= 100 ? "assembled · " + M.comps.length + " parts in place" : "fitting part " + (j + 1) + " of " + M.comps.length + ": " + c.name + " · connects to " + c.links.map((k) => nm[k].toLowerCase()).join(", "); }
+      else if (state.view === "apart") txt = M.comps.length + " parts, in the order of the light path · " + lz;
+      else if (flat) txt = "surface " + f1(h) + " mm · line at row " + Math.round(M.row(u)) + " of " + M.rows + " · height from that row " + f1(M.heightOf(u)) + " mm · field of view here " + f1(M.fovModel(h)) + " mm · one point every " + f1(M.fovModel(h) / M.points * 1000) + " µm";
+      else if (state.view === "spec") txt = "clearance " + M.CD + " mm · range " + M.MR + " mm · field of view " + M.fovNear + " to " + M.fovFar + " mm · " + M.points + " points: one every " + f1(M.fovNear / M.points * 1000) + " µm (near) to " + f1(M.fovFar / M.points * 1000) + " µm (far)";
+      else if (state.mode === "scan") txt = "conveyor " + f1(state.speed) + " m/s · " + state.rate + " Hz · " + S7 + " · " + Math.floor(120 / gap) + " profiles on this 120 mm part" + (gap < 0.8 ? " · drawn every 0.8 mm" : "");
+      else { const ok = samples.filter((s) => s.valid).length, lost = samples.filter((s) => s.lit && s.block).length; txt = lz + " · " + M.points + " points per profile" + (state.mode === "part" || state.mode === "pass" ? " · highest point under the line " + f1(Math.max(...samples.filter((s) => s.valid).map((s) => s.h), 0)) + " mm" + (lost ? " · no data on " + Math.round(lost / (ok + lost) * 100) + "% of the line" : "") : ""); }
+      F.readout(txt);
+    });
+
+    // ---------- 10. views: what is solid, ghosted or hidden, and where the camera looks ----------
+    const box = (a, b) => new THREE.Box3(new THREE.Vector3(...a), new THREE.Vector3(...b));
+    const sensorBox = box([-36, -26, ZS - 2], [152, 26, ZS + 92]), apartBox = box([-40, -M.deep - 4, ZS - 4], [156, 28, ZS + 94]), triBox = box([-250, -72, B - 6], [152, 72, ZS + 92]);
+    const INNER = ["c_diode", "c_line", "c_lwin", "c_cwin", "c_lens", "c_chip"], CONN = ["c_plan", "c_io"];
+    function light(keys) { state.light = keys; for (const p of F.parts) { if (!p.isMesh || p.userData.tag === "flow" || p.userData.tag === "spec") continue; const on = keys.includes(p.userData.tag) || keys.includes(F.infoOf(p)); if (on || p.userData.lit2) { p.material.emissive.setHex(on ? 0x2f8cff : 0).multiplyScalar(0.5); p.userData.lit2 = on; } } }
+    function show(v) {
+      const g = Object.assign({ mount: 1, cable: 1, conv: 1, part: 0, riser: 0, body: 1, cover: 1, inner: 1, board: 1, conn: 1, spec: 0 }, v.ghost);
+      F.ghost("mount", g.mount); F.ghost("cable", g.cable); F.ghost("conv", g.conv); F.ghost("part", g.part); F.ghost("riser", g.riser); F.ghost("c_body", g.body); F.ghost("c_cover", g.cover); F.ghost(INNER, g.inner); F.ghost("c_board", g.board); F.ghost(CONN, g.conn); F.ghost("spec", g.spec); if (g.spec) F.ghost(meshes.trap, 0.3);
+      if (v.ghostKeys) for (const k in v.ghostKeys) F.ghost("c_" + k, v.ghostKeys[k]);
+      state.view = v.view || null; state.mode = v.mode || "none"; state.beams = v.beams || {}; state.inset = v.inset || null; inset.style.display = v.inset ? "block" : "none"; state.demo = v.demo || null; state.hold = 0;
+      state.build = v.build === undefined ? null : v.build; state.t0 = F.time;
+      if (v.off !== undefined) state.off = v.off; state.stillOff = v.stillOff !== undefined ? v.stillOff : state.off; if (v.mode === "scan" || v.mode === "pass") { state.off = -100; scanReset(); }
+      if (v.h !== undefined) state.h = v.h; if (v.speed) { state.speed = v.speed; state.rate = v.rate; }
+      if (v.asm === "apart") M.comps.forEach((c, j) => F.to("c_" + c.key, j ? 1 : 0, 0.3)); else if (v.asm === "slider") applyAsm(); else if (state.build === null) M.comps.forEach((c) => F.to("c_" + c.key, 0, 0.3));
+      light(v.light || []); F.flows(v.flow || null); F.labels(state.labels ? v.set : null); F.shadow(v.shadow === undefined ? 1 : v.shadow);
+      F.focus(v.box, { azimuth: v.az, elevation: v.el, pad: v.pad || 1.05 });
+      bar.querySelectorAll("[data-c]").forEach((e) => { e.hidden = e.dataset.c !== v.ctl; }); syncSliders(); F.run();
+    }
+    function applyAsm() { M.comps.forEach((c, j) => F.to("c_" + c.key, M.asm(state.asm, j), 0.1)); }
+    const SEE = { body: 0.1, cover: 0.04, mount: 0.05, cable: 0.05 };
+    const STAGES = [
+      { name: "On the line", set: "line", hint: "The sensor hangs above the conveyor. It draws one laser line across each part that passes.", mode: "pass", stillOff: 26, beams: { fan: 1, line: 1 }, ghost: { part: 1 }, box: box([-330, -115, 0], [330, 175, ZS + 115]), az: 32, el: 18 },
+      { name: "Outside", set: "out", hint: "From below: a sealed housing with two windows, one for the laser and one for the camera. Two connectors on the end.", ghost: { mount: 0.07, conv: 0, cable: 0.5 }, shadow: 0, box: sensorBox, az: 40, el: -20, pad: 1.3 },
+      { name: "Inside", set: "in", hint: "The housing is see-through. Laser parts on the left, camera parts on the right, the processor board on top.", beams: { inner: 1, fan: 1 }, ghost: Object.assign({ conv: 0.05 }, SEE), box: sensorBox, az: 14, el: 10, pad: 1.2 },
+      { name: "Apart", set: "apart", view: "apart", asm: "apart", hint: "Every component, moved out along one axis. From the housing forward, they are in the order of the light path.", ghost: { mount: 0, cable: 0, conv: 0 }, shadow: 0, box: apartBox, az: 56, el: 18 },
+      { name: "Together", set: "apart", view: "asm", asm: "slider", ctl: "asm", hint: "Move the Assembly slider. The parts go in one at a time, in the order a builder fits them.", ghost: { mount: 0, cable: 0, conv: 0, body: 0.3 }, shadow: 0, box: apartBox, az: 56, el: 18 },
+      { name: "Triangulation", set: "tri", ctl: "h", hint: "Move the Surface height slider. The laser comes straight down. The camera looks from the side, so a higher surface shifts the line on the chip.", mode: "flat", beams: { fan: 1, line: 1, rays: 1, inner: 1 }, inset: "row", ghost: Object.assign({ riser: 1, board: 0.12, conn: 0.2, conv: 0.5 }, SEE), box: triBox, az: 14, el: 8 },
+      { name: "Spec sheet", set: "spec", view: "spec", hint: "The data sheet terms at full size: clearance distance, measurement range, and a field of view that is wider at the far end.", beams: {}, ghost: { spec: 1, mount: 0.05, cable: 0.05, conv: 0.35 }, box: box([-40, -80, B - 4], [150, 110, ZS + 92]), az: 66, el: 8 },
+      { name: "Build a scan", set: "scan", ctl: "scan", hint: "The part moves through the laser plane. Each profile is one slice. After each pass the part fades, and the stacked slices stay as a 3D surface.", mode: "scan", stillOff: 24, beams: { fan: 1, line: 1 }, ghost: { part: 1, mount: 0.1, cable: 0.1 }, box: box([-115, -75, B - 8], [115, 75, B + 150]), az: 38, el: 30 },
+    ];
+
+    // ---------- 11. controls and lessons ----------
+    const bar = document.createElement("div"); bar.className = "mech-controls";
+    bar.innerHTML = STAGES.map((s, i) => `<button data-stage="${i}">${i + 1} ${s.name}</button>`).join("") + `<span class="sp"></span>` +
+      `<span data-c="h">Surface height</span><input data-c="h" data-s="h" type="range" min="0" max="130" step="1" aria-label="Surface height in millimetres">` +
+      `<span data-c="asm">Assembly</span><input data-c="asm" data-s="asm" type="range" min="0" max="100" step="1" aria-label="Assembly, 0 to 100">` +
+      `<span data-c="scan">Conveyor speed</span><input data-c="scan" data-s="speed" type="range" min="0.2" max="3" step="0.1" aria-label="Conveyor speed in metres per second"><span data-c="scan">Scan rate</span><input data-c="scan" data-s="rate" type="range" min="0" max="100" step="1" aria-label="Scan rate">` +
+      `<span class="sp"></span><button data-t="labels" aria-pressed="${state.labels}">Labels</button><button data-t="lesson">Lesson: one measurement</button><button data-t="build">Lesson: build it</button><button data-t="laser">${state.laser === "blue" ? "Red laser" : "Blue laser"}</button><button data-t="style">${REAL ? "Line view" : "Real view"}</button>`;
+    F.mount.querySelector(".mech-stage").after(bar);
+    const hintEl = F.mount.querySelector(".mech-hint"), q = (s) => bar.querySelector(`input[data-s=${s}]`);
+    const rateOf = (v) => { const r = 100 * Math.pow(90, v / 100); return r < 1000 ? Math.round(r / 10) * 10 : Math.round(r / 100) * 100; }, rateTo = (r) => Math.round(100 * Math.log(r / 100) / Math.log(90));
+    function syncSliders() { q("h").value = Math.round(state.h); q("asm").value = state.asm; q("speed").value = state.speed; q("rate").value = rateTo(state.rate); }
+    bar.addEventListener("input", (e) => { const s = e.target.dataset.s; if (!s) return; F.touch(); const v = +e.target.value;
+      if (s === "h") { state.h = v; state.demo = null; } else if (s === "asm") { state.asm = v; applyAsm(); } else { if (s === "speed") state.speed = v; else state.rate = rateOf(v); if (state.mode === "scan") { state.off = -100; state.hold = 0; scanReset(); F.ghost("part", 1); } } F.run(); });
+    function setStage(i, quiet) { if (!quiet) F.touch(); state.stage = ((i % STAGES.length) + STAGES.length) % STAGES.length; const s = STAGES[state.stage]; show(s); hintEl.textContent = s.hint; bar.querySelectorAll("[data-stage]").forEach((b, k) => b.setAttribute("aria-pressed", k === state.stage)); }
+    const st = (i, extra) => () => { show(Object.assign({}, STAGES[i], { ctl: null }, extra)); bar.querySelectorAll("[data-stage]").forEach((b) => b.setAttribute("aria-pressed", "false")); };
+    const pct = (v) => Math.round(v * 1000);
+    const lesson = F.lesson([
+      { title: "1. The laser makes a line", text: "The diode makes light, and a small lens makes the beam parallel. The line lens spreads the beam one way only. A flat fan of light leaves through the laser window. This fan is the laser plane.", go: st(2, { set: "laser", light: ["c_diode", "c_line", "c_lwin"], ghost: Object.assign({ conv: 0.3, board: 0.1, conn: 0.1 }, SEE), box: box([-45, -40, ZS - 60], [60, 40, ZS + 80]), az: 30, el: 12 }) },
+      { title: "2. The line lands on the part", text: "The laser plane comes straight down and does not move. Where it meets the part, you see a bright line. The line follows the shape of the part: up on the pad, down on the base.", go: st(0, { mode: "part", off: 26, set: "line", box: box([-110, -80, B - 10], [150, 80, ZS + 95]), az: 34, el: 22 }) },
+      { title: "3. The camera looks from the side", text: "The camera lens does not look straight down. It looks at the laser plane at an angle of about " + Math.round(M.angle / D) + " degrees. It makes an image of the line on the image chip. Each " + LZ.word + " ray goes from the line, through the lens, to the chip.", go: st(5, { h: 40, inset: null, light: ["c_lens", "c_chip"] }) },
+      { title: "4. A higher surface shifts the line", text: "Watch the surface move up and down. The line on the chip moves with it, because the camera sees the surface from the side. The sensor turns the row of the line back into a height. This is triangulation.", go: st(5, { demo: "height", ctl: "h" }) },
+      { title: "5. The chip is tilted", text: "A lens can only keep one flat plane sharp. The laser plane is at an angle to the lens, so the chip is tilted to match. Now the near end and the far end are sharp at the same time. With a square chip, the line would blur over about " + Math.round(M.blurRows(M.zNear)) + " rows at the near end.", go: st(5, { h: 65, set: "optics", inset: null, light: ["c_chip"], ghost: Object.assign({ riser: 1, board: 0.05, conn: 0.1, conv: 0.5 }, SEE), box: box([40, -30, ZS + 10], [112, 30, ZS + 72]), az: 8, el: 6 }) },
+      { title: "6. Find the line in every column", text: "The chip has 4192 pixel columns. In each one, the peak finder looks for the brightest row and refines it to a fraction of a pixel. Exposure matters here. A dark part gives a weak peak. A shiny part saturates the pixels and the top goes flat.", go: st(5, { h: 55, inset: "peak", light: ["fpga"], ghost: Object.assign({ riser: 1, board: 1, conn: 0.2, conv: 0.5 }, SEE) }) },
+      { title: "7. Pixels become millimetres", text: "A calibration table turns each column and row into a real position: X along the line, Z for height. The same 4192 points cover 71 mm at the near end and 135 mm at the far end. So the points are " + f1(M.fovNear / M.points * 1000) + " µm apart near the sensor and " + f1(M.fovFar / M.points * 1000) + " µm apart far from it.", go: st(6, { light: ["cal"] }) },
+      { title: "8. Profile, tool, result", text: "The calibrated points make one profile. The processor runs a measurement tool on it, for example a height or a gap, and compares the result with the limits. The pass or fail signal leaves on the I/O connector. All of this happens in the head.", go: st(2, { set: "chain", flow: "chain", light: ["cpu", "c_io"], beams: { inner: 1, fan: 1, line: 1 }, ghost: Object.assign({ conv: 0.4 }, SEE), box: box([-60, -60, B - 6], [160, 60, ZS + 92]), az: 14, el: 8 }) },
+      { title: "9. What if a tall edge blocks the camera?", text: "The laser still lights the surface behind the tall rib. But the rib stands between that spot and the camera. The orange rays stop at the rib, and that part of the line has no data. This is occlusion. A bigger camera angle gives better height resolution and longer blind zones.", go: st(5, { mode: "part", off: -5, set: "occ", inset: "row", ghost: Object.assign({ part: 1, board: 0.12, conn: 0.2, conv: 0.5 }, SEE), box: box([-70, -70, B - 6], [60, 70, B + 135]), az: -72, el: 24 }) },
+      { title: "10. What if the conveyor is fast and the scan rate is low?", text: "The sensor takes one profile each time it scans. Distance between profiles = speed / scan rate. At 2.5 m/s and 150 Hz that is " + f1(M.spacing(2.5, 150)) + " mm, so small features fall between the slices. At 9000 Hz it is " + f2(M.spacing(2.5, 9000)) + " mm.", go: st(7, { speed: 2.5, rate: 150, stillOff: 70 }) },
+      { title: "11. Back on the line", text: "One line, one camera at an angle, one chip, and a computer in the head. Each scan gives one profile. The moving part gives the third dimension.", go: st(0) },
+    ], { onClose: () => setStage(0, true) });
+    const BT = {
+      body: "It holds every other part at a fixed distance and angle. Nothing comes before it. It gives the optics a rigid frame, and the windows and connectors a sealed seat.",
+      diode: "It turns current into laser light and makes the beam parallel. It needs drive current from the processor board. It gives a narrow, parallel beam to the line lens.",
+      line: "It spreads the beam in one direction only. It needs a parallel beam from the diode module. It gives a flat fan of light, the laser plane, to the laser window.",
+      lwin: "It lets the laser plane out and keeps dust and water out. It needs the fan from the line lens. It gives the part a bright laser line.",
+      cwin: "It lets the scattered light come back in. It needs the lit line on the part. It gives that light to the camera lens.",
+      lens: "It collects the light and forms an image of the line. It needs a clear view through the camera window. It gives a sharp image to the image chip.",
+      chip: "It turns the image into numbers, one brightness value for each pixel. It needs a sharp image, so it sits tilted behind the lens. It gives frames of pixels to the processor board.",
+      board: "It finds the line in every column, converts pixels to millimetres and runs the measurement. It needs pixel frames from the chip, and it drives the laser. It gives a profile and a result to the connectors.",
+      plan: "It brings in power and the laser safety signal, and it carries Ethernet. It needs the processor board behind it. It gives the board power, and it gives you the setup pages and the 3D data.",
+      io: "It carries the trigger or encoder in, and the result out. It needs a decision from the processor board. It gives the production line a pass or fail signal.",
+      cover: "It closes the housing and presses on the seal. It needs every part in place first. It gives a sealed unit that keeps its alignment.",
+    };
+    const buildView = (j) => ({ view: "build", build: j, set: null, ghost: { mount: 0, cable: 0, conv: 0, body: 0.3 }, shadow: 0, box: apartBox, az: 56, el: 18 });
+    const buildLesson = F.lesson(M.comps.map((c, j) => ({ title: (j + 1) + ". " + c.name, text: BT[c.key], go: () => { const gk = {}; M.comps.forEach((o, k) => { if (k > j) gk[o.key] = 0.12; else if (o.key !== "body") gk[o.key] = 1; }); if (!j) gk.body = 1; show(Object.assign(buildView(j), { ghostKeys: gk, light: c.links.map((k) => "c_" + k), box: box([-40, -Math.max(c.d + 40, 170), ZS - 4], [156, 28, ZS + 94]) })); } })).concat([
+      { title: "12. Laser on: the first profile", text: "All eleven parts are in place. The board fires the laser, the line lands on the part, the lens images it on the chip, and the board turns it into a profile. No single part measures anything. The system does.", go: st(5, { mode: "part", off: 26, build: M.comps.length, set: null, inset: "row", light: [], ghost: Object.assign({ part: 1, board: 0.5, conn: 0.6, conv: 0.5 }, SEE), box: box([-70, -75, B - 6], [152, 75, ZS + 92]), az: 28, el: 14 }) },
+    ]), { onClose: () => setStage(4, true) });
+    F.label("part", { set: "occ", text: "Tall rib", on: [11, 20, B + 75] }); F.label("nodata", { set: "occ", text: "Lit, but no data", on: [-1, 28, B + 13] }); F.label("seen", { set: "occ", text: "Line the camera sees", on: [-1, -40, B + 13] }); F.label("blocked", { set: "occ", text: "Blocked camera rays", on: [4, 30, B + 26] });
+    for (const k of ["diode", "line", "lwin"]) F.label(k, { set: "laser" }); F.label("collimator", { set: "laser" });
+    F.label("lens", { set: "optics" }); F.label("chip", { set: "optics", text: "Tilted image chip" }); F.label("flex", { set: "optics" });
+    bar.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; F.touch(); const t = b.dataset.t;
+      if (b.dataset.stage) setStage(+b.dataset.stage); else if (t === "style") { state.style = REAL ? "line" : "real"; start(); } else if (t === "laser") { state.laser = state.laser === "blue" ? "red" : "blue"; start(); }
+      else if (t === "labels") { state.labels = !state.labels; b.setAttribute("aria-pressed", state.labels); setStage(state.stage, true); } else if (t === "lesson") lesson.open(0); else if (t === "build") buildLesson.open(0); });
+    F.stage.addEventListener("keydown", (e) => { if (e.key >= "1" && e.key <= String(STAGES.length)) setStage(+e.key - 1); });
+    F.onPress = () => setStage(state.stage + 1);
+    F.tour(() => setStage(state.stage + 1, true));
+
+    // ---------- 12. card: every simplification is in the caption ----------
+    mech.card("#fig", {
+      fig: "Fig 6", title: "How a laser line profiler measures height",
+      keys: [{ mark: "lit", label: "Click a part to learn what it does" }, { mark: "mid", label: "Keys 1 to 8 change the view. Drag to orbit. Sources lists every number." }],
+      caption: "Reference model: Gocator 2630. The clearance distance, the measurement range, the field of view, the 4192 points and the scan rate come from the data sheet. The height in the readout comes back from the row of the line on the chip, through the same lens geometry that draws the rays. Assumed or illustrative: the housing is a generic shape, not the product design. The internal layout, the " + Math.round(M.angle / D) + " degree camera angle, the lens and the chip size are not published. They are chosen so that the model gives the published field of view. Height 0 is the conveyor, placed at the far end of the range. The motion is slowed down. When profiles are closer than 0.8 mm, the figure draws one every 0.8 mm. Dots show the order of the signal chain, not its speed. That the measurement tools run in the head is the usual description of a smart sensor. It is marked assumed in Sources. " + (state.laser === "blue" ? "Blue" : "Red") + " laser shown: blue gives less speckle and finer detail, red is the general-purpose choice and does not make plastics glow.",
+    });
+    window.fig = F; window.setStage = setStage; window.state = state; window.buildLesson = buildLesson; window.model = M;
+    window.verify = () => { const r = {}; M.comps.forEach((c) => { const g = G[c.key]; r[c.key] = +(g.position.distanceTo(g.userData.rest)).toFixed(4); }); return r; };
+    setStage(state.stage, true); F.fit(true);
+  }
+  addEventListener("mech-theme", start);
+  start();
+})();
+
+</script>
+</body>
+</html>
