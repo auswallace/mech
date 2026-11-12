@@ -4,9 +4,9 @@
 
 You ask "show me how a dishwasher works". The assistant follows this skill and gives you one HTML page: a 3D model that you can open up stage by stage, with labels, part info, a guided lesson and a live readout. It works for machines, buildings, and ideas with no physical shape, such as a language model or a DNS lookup.
 
-[![A figure built from one prompt](docs/demo.gif)](https://auswallace.github.io/mech/docs/demo.mp4)
+[![Ask a question, get a 3D model you can open up](docs/demo.gif)](https://auswallace.github.io/mech/docs/demo.mp4)
 
-A figure built from one prompt. Click for the full video.
+Type `/mech` and a question. Every shot here is a real figure. Click for the full video.
 
 ## Gallery
 
