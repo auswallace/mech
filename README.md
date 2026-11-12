@@ -16,8 +16,8 @@ Each picture links to the live figure. Open one, step through the stages, and cl
 | Twin-turbo V8 in an SUV | How a rear derailleur shifts |
 | [![DNS lookup](docs/dns.gif)](https://auswallace.github.io/mech/examples/dns/) | [![Language model](docs/llm.gif)](https://auswallace.github.io/mech/examples/llm/) |
 | How DNS finds an address | Inside a small language model |
-| [![Office tower](docs/tower.gif)](https://auswallace.github.io/mech/examples/tower/) | |
-| Structure of a 20-storey tower | |
+| [![Office tower](docs/tower.gif)](https://auswallace.github.io/mech/examples/tower/) | [![Laser line profiler](docs/gocator.gif)](https://auswallace.github.io/mech/examples/gocator/) |
+| Structure of a 20-storey tower | How a laser line profiler measures height |
 
 ## Examples
 
@@ -25,6 +25,7 @@ Each picture links to the live figure. Open one, step through the stages, and cl
 - `examples/tower`: the structure of a 20-storey office tower. Slabs, beams, columns, core, lifts and piled foundation, a slider that builds it storey by storey, and the paths of weight and wind.
 - `examples/derailleur`: how a rear derailleur shifts gears. Toothed cogs, a chain that follows a solved path, a parallelogram that swings, and a cage whose angle keeps the chain length constant. It carries a sourced facts list and 33 model checks.
 - `examples/dns`: how DNS finds the address of a website. Five stations, eight readable messages, a cache that fills and expires.
+- `examples/gocator`: how a laser line profiler turns a laser line into heights, with the Gocator 2630 as the reference model. Eight stages from the sensor on a conveyor to the parts apart and back together, a height slider that moves the line on the image chip, the spec sheet terms drawn at full size, and a scan that builds up profile by profile. Two lessons: one measurement from laser to result, and a build with one step for each component. The data sheet numbers are sourced. The housing is generic, and the internal layout is marked illustrative.
 - `examples/llm`: the inside of a small language model. Tokens, embeddings, 12 layers of attention and MLP, and the next-token output, with the sizes of GPT-2 small.
 
 Every figure has labels, click-to-learn part info, a guided lesson and a light and dark theme. The newer ones also have a Sources button that shows where each fact comes from.
@@ -44,7 +45,7 @@ The agent needs Node to build a figure. It needs Python, Playwright and Chrome t
 ## What a figure gives you
 
 - Stages that go from the whole object to the mechanism inside it.
-- Labels, and part info when you click a part.
+- Labels, and part info when you click a part or its label: what it is, what it does, how, and where the facts come from.
 - A guided lesson that moves the model step by step.
 - A readout with numbers that come from the same model that drives the motion.
 - A Sources button that shows where each fact comes from.
