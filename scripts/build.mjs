@@ -1,6 +1,6 @@
 // Build one self-contained page from the kit and a scene script.
 // Usage: node scripts/build.mjs examples/v8-suv [--light]
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -11,6 +11,16 @@ const kit = readFileSync(join(ROOT, "kit/mech.js"), "utf8");
 const scene = readFileSync(join(dir, "scene.js"), "utf8");
 const title = (scene.match(/fig:\s*"[^"]*",\s*title:\s*"([^"]+)"/) || [, "Figure"])[1];
 const css = (kit.match(/const CSS = `([\s\S]*?)`;/) || [, ""])[1];
+// optional add-on: parts made in Blender. If the scene folder has parts.glb, inline the glTF loader, the add-on and the file.
+const glb = join(dir, "parts.glb");
+const meshScripts = existsSync(glb) ? `<script>
+${readFileSync(join(ROOT, "kit/vendor/GLTFLoader.r128.min.js"), "utf8")}
+</script>
+<script>
+${readFileSync(join(ROOT, "kit/mech-mesh.js"), "utf8")}
+</script>
+<script>window.MECH_GLB = "${readFileSync(glb).toString("base64")}";</script>
+` : "";
 
 const html = `<!DOCTYPE html>
 <html lang="en" data-theme="${theme}">
@@ -26,7 +36,7 @@ const html = `<!DOCTYPE html>
 <script>
 ${kit}
 </script>
-<script>
+${meshScripts}<script>
 ${scene}
 </script>
 </body>
