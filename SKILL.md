@@ -23,6 +23,8 @@ Infer first. Ask only what the request does not already answer. Ask at most thre
 
 **In motion** is an add-on, like the quiz. Use it when the subject travels or does its work while it moves: a car, a bike, a train, a conveyor. Stage 1 then shows the subject at work in its surroundings (a car on a road that scrolls, with wheels that roll), and it keeps running in every later stage. Turn it on by default for a vehicle and say so in the one line. Offer it as an option when it is less clear. Leave it out for things that stand still. Section 5 has the rules.
 
+**Parts from Blender** is an add-on too. Use it when the subject needs a hollow part, a real cut, two shapes fused, or a part that bends with a slider (a heart, a hand, a car body). A Blender script builds the parts and the page loads them; the reader installs nothing. The kit stays the default. Read `references/mesh.md`. Example: `examples/heart-blender`.
+
 Do not ask about look or size. Pick them and say so: "Guided lesson, for someone new, centred on how it moves heat. About 150 parts, realistic look."
 
 ## 2. Fact sheet, then storyboard
@@ -135,4 +137,4 @@ const quiz = F.quiz([{ ask, key, also }]);  quiz.start();
 mech.card("#fig", { fig, title, keys, caption });
 ```
 
-References: `references/subjects.md` (stage patterns), `references/accuracy.md` (facts, checks, second check), `references/teach.md` (labels, lessons, quizzes), `references/kit.md` (API detail), `references/craft.md` (making it look made), `references/lessons.md` (mistakes not to repeat).
+References: `references/subjects.md` (stage patterns), `references/accuracy.md` (facts, checks, second check), `references/teach.md` (labels, lessons, quizzes), `references/kit.md` (API detail), `references/craft.md` (making it look made), `references/lessons.md` (mistakes not to repeat), `references/mesh.md` (parts made in Blender).
